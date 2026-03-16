@@ -1,6 +1,6 @@
 # Nansen Radar
 
-Onchain intelligence agent for pre-trade due diligence. Powered by [Nansen CLI](https://github.com/nansen-ai/nansen-cli) and Claude.
+Onchain intelligence agent for pre-trade due diligence. Powered by [Nansen CLI](https://github.com/nansen-ai/nansen-cli).
 
 Ask a question in plain English. The agent plans an investigation, runs the right Nansen queries, analyzes the data, and produces a scored risk report.
 
