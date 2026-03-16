@@ -1,53 +1,9 @@
-export function generateReport(investigation) {
-  const { query, analysis, results, totalCalls, timestamp, plan } = investigation;
-  const findings = analysis.findings || [];
-  const recommendations = analysis.recommendations || [];
-
-  const riskScore = analysis.riskScore ?? 0;
-  const riskColor = riskScore >= 70 ? '#00e887' : riskScore >= 40 ? '#f5a623' : '#ff3b5c';
-  const riskBg    = riskScore >= 70 ? 'rgba(0,232,135,0.08)' : riskScore >= 40 ? 'rgba(245,166,35,0.08)' : 'rgba(255,59,92,0.08)';
-  const riskBorder= riskScore >= 70 ? 'rgba(0,232,135,0.25)' : riskScore >= 40 ? 'rgba(245,166,35,0.25)' : 'rgba(255,59,92,0.25)';
-
-  const severityMeta = {
-    positive: { color: '#00e887', icon: '↑', label: 'POSITIVE' },
-    neutral:  { color: '#4d91c8', icon: '–', label: 'NEUTRAL'  },
-    warning:  { color: '#f5a623', icon: '!', label: 'WARNING'  },
-    danger:   { color: '#ff3b5c', icon: '↓', label: 'CRITICAL' },
-  };
-
-  const findingsHtml = findings.map(f => {
-    const meta = severityMeta[f.severity] || severityMeta.neutral;
-    const chips = (f.dataPoints || []).map(d =>
-      `<span class="chip">${escHtml(d)}</span>`).join('');
-    return `
-  <div class="finding" style="--c:${meta.color}">
-    <div class="finding-top">
-      <span class="sev-tag" style="color:${meta.color};border-color:${meta.color}33;background:${meta.color}0d">
-        <span>${meta.icon}</span> ${meta.label}
-      </span>
-      <span class="finding-cat">${escHtml(f.category)}</span>
-    </div>
-    <h3 class="finding-title">${escHtml(f.title)}</h3>
-    <p class="finding-detail">${escHtml(f.detail)}</p>
-    ${chips ? `<div class="chips">${chips}</div>` : ''}
-  </div>`;
-  }).join('');
-
-  const recsHtml = recommendations.map((r, i) => `
-  <div class="rec">
-    <span class="rec-idx">${String(i + 1).padStart(2, '0')}</span>
-    <span class="rec-body">${escHtml(r)}</span>
-  </div>`).join('');
-
-  const dateStr = timestamp ? timestamp.split('T')[0] : '';
-  const successCount = results.filter(r => r.success).length;
-
-  return `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nansen Radar — ${escHtml(query.slice(0, 60))}</title>
+<title>Nansen Radar — why is btc pumping? is it good to buy now ?</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 
@@ -154,8 +110,8 @@ body::before{
 }
 .score-number{
   font-size:112px;font-weight:700;line-height:1;
-  color:${riskColor};
-  text-shadow:0 0 60px ${riskColor}55;
+  color:#ff3b5c;
+  text-shadow:0 0 60px #ff3b5c55;
   font-variant-numeric:tabular-nums;
   letter-spacing:-4px;
 }
@@ -168,7 +124,7 @@ body::before{
   display:inline-flex;align-items:center;
   padding:6px 18px;border-radius:100px;
   font-size:11px;font-weight:700;letter-spacing:0.15em;
-  background:${riskBg};color:${riskColor};border:1px solid ${riskBorder};
+  background:rgba(255,59,92,0.08);color:#ff3b5c;border:1px solid rgba(255,59,92,0.25);
 }
 .score-right{
   background:var(--navy1);
@@ -293,58 +249,133 @@ body::before{
     </div>
     <div class="topbar-right">
       <span class="live-dot">Analysis Complete</span>
-      <span class="topbar-date">${escHtml(dateStr)}</span>
+      <span class="topbar-date">2026-03-16</span>
     </div>
   </div>
 
   <div class="query-section">
     <div class="query-label">Investigation Query</div>
-    <div class="query-text">${escHtml(query)}</div>
+    <div class="query-text">why is btc pumping? is it good to buy now ?</div>
   </div>
 
   <div class="score-hero">
     <div class="score-main">
       <div>
-        <span class="score-number">${riskScore}</span><span class="score-denom">/100</span>
+        <span class="score-number">35</span><span class="score-denom">/100</span>
       </div>
       <div class="score-label-row">
-        <span class="score-badge">${escHtml(analysis.riskLabel || 'UNKNOWN')}</span>
+        <span class="score-badge">HIGH RISK</span>
       </div>
     </div>
     <div class="score-right">
       <div class="stat-block">
-        <div class="stat-val">${totalCalls}</div>
+        <div class="stat-val">8</div>
         <div class="stat-key">API Queries Executed</div>
       </div>
       <div class="stat-block">
-        <div class="stat-val">${successCount}</div>
+        <div class="stat-val">8</div>
         <div class="stat-key">Successful Responses</div>
       </div>
       <div class="stat-block">
-        <div class="stat-val">${findings.length}</div>
+        <div class="stat-val">5</div>
         <div class="stat-key">Intelligence Signals</div>
       </div>
     </div>
   </div>
 
-  ${analysis.summary ? `
+  
   <div class="summary-block">
-    <p class="summary-text">${escHtml(analysis.summary)}</p>
-  </div>` : ''}
+    <p class="summary-text">WBTC data reveals mixed signals for BTC's current pump. Smart money shows significant net outflows (-$5.5M from top PnL traders), while institutional exchanges show heavy inflows (+$11M). Fresh wallets are driving massive inflows (+$46M), suggesting retail FOMO rather than sophisticated accumulation.</p>
+  </div>
 
-  ${findings.length ? `
+  
   <div class="section-head">
     <span class="section-head-label">Intelligence Signals</span>
     <span class="section-head-line"></span>
   </div>
-  <div class="findings">${findingsHtml}</div>` : ''}
+  <div class="findings">
+  <div class="finding" style="--c:#f5a623">
+    <div class="finding-top">
+      <span class="sev-tag" style="color:#f5a623;border-color:#f5a62333;background:#f5a6230d">
+        <span>!</span> WARNING
+      </span>
+      <span class="finding-cat">Smart Money</span>
+    </div>
+    <h3 class="finding-title">Top Traders Are Net Selling During Pump</h3>
+    <p class="finding-detail">Top PnL traders show -$5.5M net outflow with 21 wallets participating, averaging $1.55M outflow per trader. This suggests experienced traders are taking profits rather than accumulating during the pump.</p>
+    <div class="chips"><span class="chip">top_pnl_net_flow_usd: -$5,486,350</span><span class="chip">top_pnl_wallet_count: 21</span><span class="chip">avg_flow_per_wallet: -$261,254</span></div>
+  </div>
+  <div class="finding" style="--c:#ff3b5c">
+    <div class="finding-top">
+      <span class="sev-tag" style="color:#ff3b5c;border-color:#ff3b5c33;background:#ff3b5c0d">
+        <span>↓</span> CRITICAL
+      </span>
+      <span class="finding-cat">Market Activity</span>
+    </div>
+    <h3 class="finding-title">Fresh Wallet Dominance Indicates Retail FOMO</h3>
+    <p class="finding-detail">Fresh wallets account for massive $46.6M net inflows with an average of $31.4M per wallet group. This extreme concentration suggests new retail participants entering at potential tops, a classic late-cycle behavior.</p>
+    <div class="chips"><span class="chip">fresh_wallets_net_flow_usd: $46,646,618</span><span class="chip">fresh_wallets_avg_flow_usd: $31,363,683</span><span class="chip">price_level: $73,200-$73,887</span></div>
+  </div>
+  <div class="finding" style="--c:#4d91c8">
+    <div class="finding-top">
+      <span class="sev-tag" style="color:#4d91c8;border-color:#4d91c833;background:#4d91c80d">
+        <span>–</span> NEUTRAL
+      </span>
+      <span class="finding-cat">Liquidity</span>
+    </div>
+    <h3 class="finding-title">Exchange Inflows Support Price Action</h3>
+    <p class="finding-detail">Exchanges show $11M net inflows, providing liquidity infrastructure for the pump. However, combined with smart money outflows, this could indicate distribution to retail through exchanges.</p>
+    <div class="chips"><span class="chip">exchange_net_flow_usd: $11,096,591</span><span class="chip">exchange_avg_flow_usd: $3,823,578</span></div>
+  </div>
+  <div class="finding" style="--c:#f5a623">
+    <div class="finding-top">
+      <span class="sev-tag" style="color:#f5a623;border-color:#f5a62333;background:#f5a6230d">
+        <span>!</span> WARNING
+      </span>
+      <span class="finding-cat">Holder Risk</span>
+    </div>
+    <h3 class="finding-title">Whale Activity Shows Mixed Signals</h3>
+    <p class="finding-detail">Whales demonstrate net outflows of -$365K across 2 major wallets, with one large buyer (0xd0d088) accumulating $2.1M worth but others like Wintermute (market maker) showing balanced buy/sell activity suggesting neutral positioning.</p>
+    <div class="chips"><span class="chip">whale_net_flow_usd: -$365,567</span><span class="chip">largest_buyer: $2,135,362</span><span class="chip">wintermute_net: $2,038,330</span></div>
+  </div>
+  <div class="finding" style="--c:#f5a623">
+    <div class="finding-top">
+      <span class="sev-tag" style="color:#f5a623;border-color:#f5a62333;background:#f5a6230d">
+        <span>!</span> WARNING
+      </span>
+      <span class="finding-cat">Market Activity</span>
+    </div>
+    <h3 class="finding-title">Price Action Lacks Smart Money Support</h3>
+    <p class="finding-detail">Recent price levels of $73,200-$73,887 are being driven by retail flows rather than institutional accumulation. The disconnect between price appreciation and smart money outflows suggests unsustainable momentum.</p>
+    <div class="chips"><span class="chip">current_price_range: $73,200-$73,887</span><span class="chip">smart_money_participation: minimal</span><span class="chip">retail_dominance: 76% of flows</span></div>
+  </div></div>
 
-  ${recommendations.length ? `
+  
   <div class="section-head">
     <span class="section-head-label">Action Items</span>
     <span class="section-head-line"></span>
   </div>
-  <div class="recs">${recsHtml}</div>` : ''}
+  <div class="recs">
+  <div class="rec">
+    <span class="rec-idx">01</span>
+    <span class="rec-body">AVOID buying at current levels - smart money is selling into retail demand</span>
+  </div>
+  <div class="rec">
+    <span class="rec-idx">02</span>
+    <span class="rec-body">Wait for a 15-20% correction to enter, when retail FOMO subsides and smart money returns</span>
+  </div>
+  <div class="rec">
+    <span class="rec-idx">03</span>
+    <span class="rec-body">If already holding, consider taking partial profits given the negative smart money sentiment</span>
+  </div>
+  <div class="rec">
+    <span class="rec-idx">04</span>
+    <span class="rec-body">Monitor for reversal in smart money flows before considering new positions</span>
+  </div>
+  <div class="rec">
+    <span class="rec-idx">05</span>
+    <span class="rec-body">Set stop losses below $70,000 if entering positions, as retail-driven pumps often reverse quickly</span>
+  </div></div>
 
   <div class="footer">
     Powered by <a href="https://github.com/nansen-ai/nansen-cli" target="_blank">Nansen CLI</a>
@@ -354,14 +385,4 @@ body::before{
 
 </div>
 </body>
-</html>`;
-}
-
-function escHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
+</html>
