@@ -24,9 +24,9 @@ Nansen Radar changes that. Before you swap, bridge, or enter a position, the age
 - Identifies who bought, who sold, and what labeled wallets are holding
 - Profiles wallet behavior and counterparty risk
 - Monitors unusual transfer patterns, large outflows, and suspicious flow intelligence
-- Covers derivatives — perp screener, open interest, and positioning data
+- Covers derivatives; perp screener, open interest, and positioning data
 
-The agent picks the right Nansen endpoints for your question. You do not configure anything — you ask, it investigates.
+The agent picks the right Nansen endpoints for your question. You do not configure anything you ask, it investigates.
 
 ---
 
@@ -52,7 +52,7 @@ targeted follow-up queries (max 4 rounds)
         │
         ▼
 Final report: risk score, findings,
-recommendations — saved as HTML
+recommendations saved as HTML
 ```
 
 ---
