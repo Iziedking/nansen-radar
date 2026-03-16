@@ -1,0 +1,27 @@
+{
+  "name": "nansen-radar",
+  "version": "1.0.0",
+  "description": "AI agent for onchain due diligence — powered by Nansen CLI and Claude",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "nansen-radar": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [
+    "nansen",
+    "crypto",
+    "defi",
+    "ai-agent",
+    "due-diligence",
+    "smart-money",
+    "onchain-intelligence"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {}
+}

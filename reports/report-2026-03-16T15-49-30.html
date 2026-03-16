@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nansen Radar — is this token safe? AetrqKMgn6Q5LCvRBShnu5DGM5qz4CSHURzUccgD</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --bg:       #07080d;
+  --surface:  #0e0f18;
+  --surface2: #13141f;
+  --border:   #1c1e2e;
+  --border2:  #252740;
+  --text:     #e2e4f0;
+  --muted:    #8b8da3;
+  --dim:      #44465a;
+  --accent:   #6366f1;
+  --accent-bg:rgba(99,102,241,0.10);
+}
+
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  line-height:1.6;
+}
+
+/* scanline texture */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.012) 2px,rgba(255,255,255,0.012) 4px);
+  pointer-events:none;z-index:0;
+}
+
+.wrap{
+  position:relative;z-index:1;
+  max-width:860px;margin:0 auto;padding:40px 24px 64px;
+}
+
+/* ── TOP BAR ─────────────────────────────────── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:36px;
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{
+  width:34px;height:34px;border-radius:8px;
+  background:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:#fff;
+  letter-spacing:0.04em;
+}
+.brand-name{
+  font-size:13px;font-weight:600;letter-spacing:0.14em;
+  text-transform:uppercase;color:var(--muted);
+}
+.topbar-date{
+  font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim);
+}
+
+/* ── QUERY ───────────────────────────────────── */
+.query-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-left:3px solid var(--accent);
+  border-radius:10px;
+  padding:20px 24px;
+  margin-bottom:28px;
+}
+.query-label{
+  font-size:10px;font-weight:600;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--dim);margin-bottom:8px;
+}
+.query-text{font-size:19px;font-weight:500;line-height:1.45;color:var(--text)}
+
+/* ── RISK HERO ───────────────────────────────── */
+.hero{
+  display:grid;grid-template-columns:200px 1fr;gap:0;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;margin-bottom:28px;
+  box-shadow:0 0 60px rgba(255,71,87,0.18);
+}
+.hero-gauge{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 20px;
+  border-right:1px solid var(--border);
+  background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);
+}
+.hero-stats{
+  padding:28px 32px;
+  display:flex;flex-direction:column;justify-content:center;gap:18px;
+}
+.risk-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 14px;border-radius:100px;
+  font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  background:rgba(255,71,87,0.18);color:#ff4757;border:1px solid #ff475744;
+  width:fit-content;
+}
+.stat-row{display:flex;flex-direction:column;gap:2px}
+.stat-label{font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim)}
+.stat-value{font-size:14px;font-weight:500;color:var(--muted);line-height:1.4}
+
+/* ── SUMMARY ─────────────────────────────────── */
+.summary-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-left:3px solid #ff4757;
+  border-radius:10px;padding:20px 24px;
+  margin-bottom:36px;
+}
+.summary-text{font-size:15px;color:var(--muted);line-height:1.7}
+
+/* ── SECTION HEADER ──────────────────────────── */
+.section-hd{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:16px;
+}
+.section-hd-title{
+  font-size:11px;font-weight:700;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--dim);
+}
+.section-hd::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── FINDINGS ────────────────────────────────── */
+.findings{display:flex;flex-direction:column;gap:12px;margin-bottom:36px}
+
+.finding{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;padding:20px 22px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.finding:hover{
+  border-color:var(--sev-color);
+  box-shadow:0 0 24px var(--sev-glow);
+}
+.finding-top{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.sev-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 12px;border-radius:100px;
+  font-size:11px;font-weight:600;letter-spacing:0.06em;
+  border:1px solid transparent;
+}
+.sev-icon{font-size:12px}
+.finding-cat{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:0.1em;
+}
+.finding-title{font-size:16px;font-weight:600;margin-bottom:6px;color:var(--text)}
+.finding-detail{font-size:13px;color:var(--muted);line-height:1.6}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chip{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  background:var(--bg);border:1px solid var(--border2);
+  border-radius:5px;padding:3px 9px;color:var(--dim);
+}
+
+/* ── RECOMMENDATIONS ─────────────────────────── */
+.recs{margin-bottom:48px}
+.rec{
+  display:flex;gap:16px;align-items:flex-start;
+  padding:13px 0;border-bottom:1px solid var(--border);
+}
+.rec:last-child{border-bottom:none}
+.rec-num{
+  font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;
+  color:var(--accent);min-width:28px;padding-top:1px;
+}
+.rec-text{font-size:14px;color:var(--muted);line-height:1.6}
+
+/* ── FOOTER ──────────────────────────────────── */
+.footer{
+  text-align:center;padding-top:24px;border-top:1px solid var(--border);
+  font-size:12px;color:var(--dim);
+}
+.footer a{color:var(--accent);text-decoration:none}
+.footer a:hover{text-decoration:underline}
+
+/* ── RESPONSIVE ──────────────────────────────── */
+@media(max-width:600px){
+  .hero{grid-template-columns:1fr}
+  .hero-gauge{border-right:none;border-bottom:1px solid var(--border)}
+  .wrap{padding:24px 16px 48px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">NR</div>
+      <div class="brand-name">Nansen Radar</div>
+    </div>
+    <div class="topbar-date">2026-03-16</div>
+  </div>
+
+  <div class="query-card">
+    <div class="query-label">Investigation Query</div>
+    <div class="query-text">is this token safe? AetrqKMgn6Q5LCvRBShnu5DGM5qz4CSHURzUccgDpump on solana</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-gauge">
+      <svg width="160" height="160" viewBox="0 0 160 160">
+  <circle cx="80" cy="80" r="75" fill="none" stroke="#1c1e2e" stroke-width="10"/>
+  <circle cx="80" cy="80" r="75" fill="none" stroke="#ff4757" stroke-width="10"
+    stroke-dasharray="471.23889803846896" stroke-dashoffset="353.4291735288517"
+    stroke-linecap="round" transform="rotate(-90 80 80)"
+    style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)"/>
+  <text x="80" y="76" text-anchor="middle"
+    font-family="Inter,sans-serif" font-size="40" font-weight="700" fill="#ff4757">25</text>
+  <text x="80" y="100" text-anchor="middle"
+    font-family="Inter,sans-serif" font-size="11" fill="#44465a" letter-spacing="0.12em">RISK SCORE</text>
+</svg>
+    </div>
+    <div class="hero-stats">
+      <div class="risk-badge">HIGH RISK</div>
+      <div class="stat-row">
+        <span class="stat-label">API Queries</span>
+        <span class="stat-value">5 executed · 5 succeeded</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Signals Found</span>
+        <span class="stat-value">5 findings · 5 actions</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Intent</span>
+        <span class="stat-value">User wants to assess the safety/legitimacy of token AetrqKMgn6Q5LCvRBShnu5DGM5qz4CSHURzUccgDpump on Solana</span>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="summary-card">
+    <p class="summary-text">VEESA shows concerning concentration patterns typical of pump.fun launches. The token deployer holds 4.49% and made massive trades ($13.2K), while the top holder is the Pump.fun liquidity pool with 7.54%. Exchange outflows of $122K suggest potential coordinated selling, though some whale inflows provide modest counterbalance.</p>
+  </div>
+
+  
+  <div class="section-hd"><span class="section-hd-title">Intelligence Signals</span></div>
+  <div class="findings">
+  <div class="finding" style="--sev-color:#ff4757;--sev-glow:rgba(255,71,87,0.12)">
+    <div class="finding-top">
+      <span class="sev-pill" style="color:#ff4757;background:rgba(255,71,87,0.12);border-color:#ff475733">
+        <span class="sev-icon">↓</span>Critical
+      </span>
+      <span class="finding-cat">Holder Risk</span>
+    </div>
+    <h3 class="finding-title">Extremely Concentrated Ownership Structure</h3>
+    <p class="finding-detail">Top 20 holders control ~20% of supply. The token deployer (5ebHBE4HHHu8qPz1nz5aMbqFjETf64bZwaVnABnmTJpk) holds 44.86M tokens (4.49%) and executed $13.2K in buy volume with zero sells - classic insider retention pattern. Most top holders show recent acquisition with identical 24h/7d/30d balance changes indicating very new token.</p>
+    <div class="chips"><span class="chip">deployer_holdings: 44.86M tokens (4.49%)</span><span class="chip">top_20_concentration: ~20%</span><span class="chip">deployer_trade_volume: $13,228 (all buys)</span></div>
+  </div>
+  <div class="finding" style="--sev-color:#ffb347;--sev-glow:rgba(255,179,71,0.12)">
+    <div class="finding-top">
+      <span class="sev-pill" style="color:#ffb347;background:rgba(255,179,71,0.12);border-color:#ffb34733">
+        <span class="sev-icon">⚠</span>Warning
+      </span>
+      <span class="finding-cat">Market Activity</span>
+    </div>
+    <h3 class="finding-title">Pump.fun Launch Pattern with High Volatility</h3>
+    <p class="finding-detail">Token launched on Pump.fun with the liquidity pool (2npS4sQqBow4aonMTn3hw2RdQg4GBi8K2K33bgruTUD7) as the largest holder at 75.38M tokens (7.54%). Price shows extreme volatility ranging from $0.00035 to $0.00119 within hours. Large initial mint transfer of 1B tokens valued at $350K occurred during launch.</p>
+    <div class="chips"><span class="chip">pump_pool_holdings: 75.38M tokens (7.54%)</span><span class="chip">price_volatility: 240% range</span><span class="chip">initial_mint: 1B tokens ($350K)</span></div>
+  </div>
+  <div class="finding" style="--sev-color:#ff4757;--sev-glow:rgba(255,71,87,0.12)">
+    <div class="finding-top">
+      <span class="sev-pill" style="color:#ff4757;background:rgba(255,71,87,0.12);border-color:#ff475733">
+        <span class="sev-icon">↓</span>Critical
+      </span>
+      <span class="finding-cat">Liquidity</span>
+    </div>
+    <h3 class="finding-title">Massive Exchange Outflows Signal Coordinated Selling</h3>
+    <p class="finding-detail">Flow intelligence reveals $122.6K in net exchange outflows with zero inflows, indicating coordinated selling pressure or potential dumps. This is partially offset by minimal whale net inflows of only $41.60, creating an extremely bearish flow profile.</p>
+    <div class="chips"><span class="chip">exchange_net_flow: -$122,600</span><span class="chip">whale_net_flow: +$41.60</span><span class="chip">smart_trader_flow: $0</span></div>
+  </div>
+  <div class="finding" style="--sev-color:#ffb347;--sev-glow:rgba(255,179,71,0.12)">
+    <div class="finding-top">
+      <span class="sev-pill" style="color:#ffb347;background:rgba(255,179,71,0.12);border-color:#ffb34733">
+        <span class="sev-icon">⚠</span>Warning
+      </span>
+      <span class="finding-cat">Smart Money</span>
+    </div>
+    <h3 class="finding-title">Absence of Smart Money and Institutional Activity</h3>
+    <p class="finding-detail">Zero smart trader activity, zero public figure involvement, and zero top PnL trader participation. Only 1 whale wallet shows minimal $41.60 net inflow. This suggests lack of sophisticated investor confidence and potential retail-driven speculation.</p>
+    <div class="chips"><span class="chip">smart_trader_count: 0</span><span class="chip">public_figure_count: 0</span><span class="chip">whale_count: 1</span><span class="chip">top_pnl_trader_count: 0</span></div>
+  </div>
+  <div class="finding" style="--sev-color:#ffb347;--sev-glow:rgba(255,179,71,0.12)">
+    <div class="finding-top">
+      <span class="sev-pill" style="color:#ffb347;background:rgba(255,179,71,0.12);border-color:#ffb34733">
+        <span class="sev-icon">⚠</span>Warning
+      </span>
+      <span class="finding-cat">Wallet Profile</span>
+    </div>
+    <h3 class="finding-title">Heavy Trading Activity from Deployer Address</h3>
+    <p class="finding-detail">The deployer address shows suspicious trading patterns with 354.7M tokens bought but zero sold, accumulating significant value while other addresses show mixed buy/sell activity. Several addresses like 7tBtTWU5 and 9WMzkjPS show net losses on their trades, indicating potential coordination or informed selling.</p>
+    <div class="chips"><span class="chip">deployer_only_buys: 354.7M tokens</span><span class="chip">net_losers_present: multiple addresses</span><span class="chip">mixed_trading_patterns: inconsistent behavior</span></div>
+  </div></div>
+
+  
+  <div class="section-hd"><span class="section-hd-title">Action Items</span></div>
+  <div class="recs">
+  <div class="rec">
+    <span class="rec-num">01</span>
+    <span class="rec-text">AVOID: High risk of rug pull or coordinated dump given extreme concentration and exchange outflows</span>
+  </div>
+  <div class="rec">
+    <span class="rec-num">02</span>
+    <span class="rec-text">If considering entry, wait for significant reduction in deployer holdings and more distributed ownership</span>
+  </div>
+  <div class="rec">
+    <span class="rec-num">03</span>
+    <span class="rec-text">Monitor for smart money or institutional wallet entries before considering any position</span>
+  </div>
+  <div class="rec">
+    <span class="rec-num">04</span>
+    <span class="rec-text">Set tight stop losses if already holding - massive selling pressure evident from flow data</span>
+  </div>
+  <div class="rec">
+    <span class="rec-num">05</span>
+    <span class="rec-text">Watch for deployer selling activity as key risk indicator</span>
+  </div></div>
+
+  <div class="footer">
+    Powered by <a href="https://github.com/nansen-ai/nansen-cli" target="_blank">Nansen CLI</a>
+    &nbsp;·&nbsp;
+    Built for <a href="https://x.com/nansen_ai" target="_blank">#NansenCLI</a> Challenge
+  </div>
+
+</div>
+</body>
+</html>
