@@ -8,11 +8,11 @@ Ask a question in plain English. The agent plans an investigation, runs the righ
 
 ## The Problem It Solves
 
-A wallet recently swapped $50 million USDT for AAVE tokens and received $36,000 worth back — a 99.9% loss absorbed by MEV attacks and protocol fees. The wallet had no intelligence on liquidity depth, token flow concentration, or on-chain routing risk before executing.
+A wallet recently swapped $50 million USDT for AAVE tokens and received $36,000 worth back a 99.9% loss absorbed by MEV attacks and protocol fees. The wallet had no intelligence on liquidity depth, token flow concentration, or on-chain routing risk before executing.
 
 This is not rare. It is the default outcome for anyone moving size without reading the chain first.
 
-Nansen Radar changes that. Before you swap, bridge, or enter a position, the agent queries smart money behavior, holder concentration, token flow patterns, and liquidity dynamics — then tells you what the data says. If the route is compromised, the pool is thin, or whales are positioned against the trade, you know before you sign.
+Nansen Radar changes that. Before you swap, bridge, or enter a position, the agent queries smart money behavior, holder concentration, token flow patterns, and liquidity dynamics then tells you what the data says. If the route is compromised, the pool is thin, or whales are positioned against the trade, you know before you sign.
 
 ---
 
