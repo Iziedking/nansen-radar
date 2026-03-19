@@ -2,7 +2,7 @@ import { planInvestigation, analyzeResults } from './planner.js';
 import { executeBatch, runHealthCheck } from './nansen.js';
 import { MAX_AGENT_STEPS } from './config.js';
 
-export async function investigate(query, apiKey) {
+export async function investigate(query, providerConfig, mode) {
   const log = [];
   let allResults = [];
   let analysis = null;
@@ -22,7 +22,7 @@ export async function investigate(query, apiKey) {
   console.log(`\x1b[90m  Nansen CLI: ${health.raw}\x1b[0m\n`);
 
   console.log(`\x1b[36m  ► Planning investigation...\x1b[0m`);
-  const plan = await planInvestigation(query, apiKey);
+  const plan = await planInvestigation(query, providerConfig, mode);
   console.log(`\x1b[90m  Intent: ${plan.intent}\x1b[0m`);
   console.log(`\x1b[90m  Strategy: ${plan.reasoning}\x1b[0m`);
   console.log(`\x1b[90m  Commands: ${plan.plan.length}\x1b[0m\n`);
@@ -30,9 +30,15 @@ export async function investigate(query, apiKey) {
   log.push({ step: 'plan', intent: plan.intent, commands: plan.plan });
 
   for (let step = 0; step < MAX_AGENT_STEPS; step++) {
-    const commands = step === 0 ? plan.plan : analysis.followUpCommands;
+    const rawCommands = step === 0 ? plan.plan : analysis.followUpCommands;
 
-    if (!commands || !commands.length) break;
+    // Filter out hallucinated non-nansen commands (e.g. npm, git, shell commands)
+    const commands = (rawCommands || []).filter(cmd => {
+      const c = (cmd || '').trim().toLowerCase();
+      return c.startsWith('nansen ') || c.startsWith('research ') || c.startsWith('profiler ');
+    });
+
+    if (!commands.length) break;
 
     const label = step === 0 ? 'Executing initial queries' : `Follow-up round ${step}`;
     console.log(`\x1b[36m  ► ${label}...\x1b[0m`);
@@ -52,7 +58,7 @@ export async function investigate(query, apiKey) {
     });
 
     console.log(`\x1b[36m  ► Analyzing data...\x1b[0m`);
-    analysis = await analyzeResults(query, plan, allResults, apiKey);
+    analysis = await analyzeResults(query, plan, allResults, providerConfig, mode);
     console.log(`\x1b[90m  Risk: ${analysis.riskLabel} (${analysis.riskScore}/100)\x1b[0m`);
     console.log(`\x1b[90m  Findings: ${analysis.findings?.length || 0}\x1b[0m\n`);
 

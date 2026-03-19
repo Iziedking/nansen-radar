@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nansen Radar — Is PENDLE on ethereum safe to accumulate right now?</title>
+<meta property="og:title" content="Nansen Radar: Is PENDLE on ethereum safe to accumulate right now — MODERATE (65/100)">
+<meta property="og:description" content="PENDLE shows concerning holder concentration with protocol contracts controlling 68% of supply, but recent trading activity indicates healthy accumulation by profitable traders. Smart money flow data ">
+<meta property="og:type" content="website">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --navy:    #05091a;
+  --navy1:   #080e22;
+  --navy2:   #0b1228;
+  --navy3:   #0f1830;
+  --border:  #1a2540;
+  --border2: #243050;
+  --blue:    #4da8ff;
+  --blue-dim:#1e3a5f;
+  --white:   #f0f4ff;
+  --muted:   #6b7fa8;
+  --dim:     #3a4a6b;
+}
+
+html{scroll-behavior:smooth}
+
+body{
+  font-family:'Space Grotesk',sans-serif;
+  background:var(--navy);
+  color:var(--white);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* subtle grid background */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(77,168,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(77,168,255,0.03) 1px, transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;z-index:0;
+}
+
+.wrap{
+  position:relative;z-index:1;
+  max-width:900px;margin:0 auto;padding:48px 24px 80px;
+}
+
+/* ── TOPBAR ──────────────────────────────────── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:56px;
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{
+  width:36px;height:36px;border-radius:8px;
+  background:linear-gradient(135deg,#1a6aff,#4da8ff);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Space Mono',monospace;font-size:12px;font-weight:700;
+  color:#fff;letter-spacing:0;
+}
+.brand-name{
+  font-size:13px;font-weight:700;letter-spacing:0.2em;
+  text-transform:uppercase;color:var(--muted);
+}
+.topbar-right{display:flex;align-items:center;gap:20px}
+.live-dot{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:600;letter-spacing:0.1em;
+  text-transform:uppercase;color:#00e887;
+}
+.live-dot::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:#00e887;
+  box-shadow:0 0 8px #00e887;
+  animation:pulse 2s ease infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.topbar-date{
+  font-family:'Space Mono',monospace;font-size:11px;color:var(--dim);
+}
+
+/* ── QUERY ───────────────────────────────────── */
+.query-section{margin-bottom:64px}
+.query-label{
+  font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:14px;
+}
+.query-text{
+  font-size:26px;font-weight:600;line-height:1.35;
+  color:var(--white);
+  border-left:3px solid var(--blue);
+  padding-left:20px;
+}
+
+/* ── SCORE HERO ──────────────────────────────── */
+.score-hero{
+  display:grid;grid-template-columns:1fr 1fr;gap:2px;
+  margin-bottom:64px;
+  border:1px solid var(--border);border-radius:16px;overflow:hidden;
+}
+.score-main{
+  background:var(--navy1);
+  padding:48px 40px;
+  display:flex;flex-direction:column;justify-content:center;
+  border-right:1px solid var(--border);
+}
+.score-number{
+  font-size:112px;font-weight:700;line-height:1;
+  color:#f5a623;
+  text-shadow:0 0 60px #f5a62355;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-4px;
+}
+.score-denom{
+  font-size:28px;font-weight:300;color:var(--dim);
+  letter-spacing:-1px;
+}
+.score-label-row{margin-top:20px;display:flex;align-items:center;gap:12px}
+.score-badge{
+  display:inline-flex;align-items:center;
+  padding:6px 18px;border-radius:100px;
+  font-size:11px;font-weight:700;letter-spacing:0.15em;
+  background:rgba(245,166,35,0.08);color:#f5a623;border:1px solid rgba(245,166,35,0.25);
+}
+.score-right{
+  background:var(--navy1);
+  padding:48px 40px;
+  display:flex;flex-direction:column;justify-content:center;gap:28px;
+}
+/* stat-block removed — replaced by radar chart */
+.stat-val{
+  font-size:40px;font-weight:700;color:var(--blue);
+  font-variant-numeric:tabular-nums;line-height:1;margin-bottom:4px;
+}
+.stat-key{
+  font-size:11px;font-weight:600;letter-spacing:0.15em;
+  text-transform:uppercase;color:var(--muted);
+}
+
+/* ── SUMMARY ─────────────────────────────────── */
+.summary-block{
+  background:var(--navy2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:28px 32px;
+  margin-bottom:64px;
+}
+.summary-text{
+  font-size:16px;line-height:1.75;color:var(--muted);
+  font-weight:400;
+}
+
+/* ── SECTION HEADER ──────────────────────────── */
+.section-head{
+  display:flex;align-items:center;gap:16px;margin-bottom:24px;
+}
+.section-head-label{
+  font-size:11px;font-weight:700;letter-spacing:0.2em;
+  text-transform:uppercase;color:var(--dim);white-space:nowrap;
+}
+.section-head-line{
+  flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent);
+}
+
+/* ── FINDINGS ────────────────────────────────── */
+.findings{display:flex;flex-direction:column;gap:2px;margin-bottom:64px}
+
+.finding{
+  background:var(--navy2);
+  border:1px solid var(--border);
+  border-left:3px solid var(--c);
+  border-radius:10px;
+  padding:24px 28px;
+  transition:background .15s,box-shadow .15s;
+}
+.finding:hover{
+  background:var(--navy3);
+  box-shadow:0 0 20px var(--c,var(--blue))1a;
+}
+.finding-top{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;
+}
+.sev-tag{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:4px;
+  font-size:10px;font-weight:700;letter-spacing:0.1em;
+  border:1px solid transparent;
+}
+.finding-cat{
+  font-family:'Space Mono',monospace;font-size:10px;
+  color:var(--dim);text-transform:uppercase;letter-spacing:0.12em;
+}
+.finding-title{
+  font-size:17px;font-weight:600;margin-bottom:8px;color:var(--white);
+}
+.finding-detail{font-size:13px;color:var(--muted);line-height:1.65}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.chip{
+  font-family:'Space Mono',monospace;font-size:10px;
+  background:var(--navy);border:1px solid var(--border2);
+  border-radius:4px;padding:3px 10px;color:var(--dim);
+}
+
+/* ── RECOMMENDATIONS ─────────────────────────── */
+.recs{margin-bottom:64px}
+.rec{
+  display:flex;gap:20px;align-items:flex-start;
+  padding:16px 0;border-bottom:1px solid var(--border);
+}
+.rec:last-child{border-bottom:none}
+.rec-idx{
+  font-family:'Space Mono',monospace;font-size:11px;
+  font-weight:700;color:var(--blue);min-width:28px;padding-top:2px;
+}
+.rec-body{font-size:14px;color:var(--muted);line-height:1.6}
+
+/* ── FOOTER ──────────────────────────────────── */
+.footer{
+  text-align:center;padding-top:32px;
+  border-top:1px solid var(--border);
+  font-size:12px;color:var(--dim);
+  letter-spacing:0.05em;
+}
+.footer a{color:var(--blue);text-decoration:none}
+.footer a:hover{text-decoration:underline}
+
+/* ── SHARE CARD ──────────────────────────────── */
+.share-card{
+  background:var(--navy2);border:1px solid var(--border2);
+  border-radius:12px;padding:18px 28px;margin-bottom:36px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  flex-wrap:wrap;
+}
+.share-left{flex:1;min-width:0}
+.share-subject{font-size:16px;font-weight:700;color:var(--white);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.share-finding{font-size:12px;color:var(--muted);margin-top:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.share-right{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.share-score-mini{
+  font-family:'Space Mono',monospace;font-size:28px;font-weight:700;
+  line-height:1;letter-spacing:-1px;
+}
+
+/* ── INVESTIGATION TRAIL ─────────────────────── */
+.trail{display:flex;flex-direction:column;gap:2px;margin-bottom:64px}
+.trail-row{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 16px;
+  background:var(--navy2);border:1px solid var(--border);border-radius:6px;
+  min-width:0;
+}
+.trail-status{font-size:11px;font-weight:700;flex-shrink:0;width:14px;text-align:center}
+.trail-details{flex:1;min-width:0}
+.trail-details summary{
+  font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);
+  cursor:pointer;list-style:none;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  outline:none;
+}
+.trail-details summary::-webkit-details-marker{display:none}
+.trail-details[open] summary{white-space:normal;color:var(--blue)}
+.trail-snip{
+  display:block;margin-top:6px;padding:6px 8px;
+  font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);
+  background:var(--navy);border-radius:4px;
+  word-break:break-all;
+}
+.trail-ms{
+  font-family:'Space Mono',monospace;font-size:9px;flex-shrink:0;
+}
+
+/* ── RESPONSIVE ──────────────────────────────── */
+@media(max-width:640px){
+  .score-hero{grid-template-columns:1fr}
+  .score-main{border-right:none;border-bottom:1px solid var(--border)}
+  .score-number{font-size:80px}
+  .query-text{font-size:20px}
+  .wrap{padding:28px 16px 56px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="share-card">
+    <div class="share-left">
+      <div class="share-subject">Is PENDLE on ethereum safe to accumulate right now?</div>
+      <div class="share-finding">High Protocol Concentration - 68% in Top 4 Addresses</div>
+    </div>
+    <div class="share-right">
+      <span class="score-badge">MODERATE</span>
+      <span class="share-score-mini" style="color:#f5a623">65</span>
+    </div>
+  </div>
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">NR</div>
+      <div class="brand-name">Nansen Radar</div>
+    </div>
+    <div class="topbar-right">
+      <span class="live-dot">Analysis Complete</span>
+      <span class="topbar-date">2026-03-17</span>
+    </div>
+  </div>
+
+  <div class="query-section">
+    <div class="query-label">Investigation Query</div>
+    <div class="query-text">Is PENDLE on ethereum safe to accumulate right now?</div>
+  </div>
+
+  <div class="score-hero">
+    <div class="score-main">
+      <div>
+        <span class="score-number">65</span><span class="score-denom">/100</span>
+      </div>
+      <div class="score-label-row">
+        <span class="score-badge">MODERATE</span>
+      </div>
+    </div>
+    <div class="score-right">
+      
+  <svg viewBox="0 0 220 220" width="220" height="220" style="overflow:visible;display:block;margin:0 auto">
+    <polygon points="110,88 129.05255888325766,99 129.05255888325766,121 110,132 90.94744111674234,121 90.94744111674235,99" fill="none" stroke="rgba(77,168,255,0.12)" stroke-width="1"/><polygon points="110,66 148.10511776651532,88 148.10511776651532,132 110,154 71.8948822334847,132 71.89488223348471,88" fill="none" stroke="rgba(77,168,255,0.12)" stroke-width="1"/><polygon points="110,44 167.15767664977295,77 167.15767664977295,143 110,176 52.84232335022705,143 52.842323350227055,77" fill="none" stroke="rgba(77,168,255,0.12)" stroke-width="1"/>
+    <line x1="110" y1="110" x2="110.0" y2="22.0" stroke="rgba(77,168,255,0.15)" stroke-width="1"/><line x1="110" y1="110" x2="186.2" y2="66.0" stroke="rgba(77,168,255,0.15)" stroke-width="1"/><line x1="110" y1="110" x2="186.2" y2="154.0" stroke="rgba(77,168,255,0.15)" stroke-width="1"/><line x1="110" y1="110" x2="110.0" y2="198.0" stroke="rgba(77,168,255,0.15)" stroke-width="1"/><line x1="110" y1="110" x2="33.8" y2="154.0" stroke="rgba(77,168,255,0.15)" stroke-width="1"/><line x1="110" y1="110" x2="33.8" y2="66.0" stroke="rgba(77,168,255,0.15)" stroke-width="1"/>
+    <polygon points="110,74.8 140.48409421321224,92.4 155.72614131981837,136.4 110,162.8 64.27385868018163,136.4 41.41078802027246,70.39999999999999" fill="rgba(77,168,255,0.12)" stroke="#4da8ff" stroke-width="1.5"/>
+    <circle cx="110.0" cy="74.8" r="3" fill="#4da8ff"/><circle cx="140.5" cy="92.4" r="3" fill="#4da8ff"/><circle cx="155.7" cy="136.4" r="3" fill="#4da8ff"/><circle cx="110.0" cy="162.8" r="3" fill="#4da8ff"/><circle cx="64.3" cy="136.4" r="3" fill="#4da8ff"/><circle cx="41.4" cy="70.4" r="3" fill="#4da8ff"/>
+    <text x="110.0" y="-2.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Smart</text><text x="110.0" y="9.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Money</text><text x="201.8" y="51.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Holder</text><text x="201.8" y="62.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Conc.</text><text x="201.8" y="163.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Liquidity</text><text x="110.0" y="210.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Token</text><text x="110.0" y="221.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Flow</text><text x="18.2" y="163.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Derivatives</text><text x="18.2" y="51.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Wallet</text><text x="18.2" y="62.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Prof.</text>
+  </svg>
+  <div style="display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:14px">
+    
+    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
+      <span style="color:#4da8ff;font-weight:700">40</span> Smart Money
+    </span>
+    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
+      <span style="color:#4da8ff;font-weight:700">40</span> Holder Conc.
+    </span>
+    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
+      <span style="color:#4da8ff;font-weight:700">60</span> Liquidity
+    </span>
+    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
+      <span style="color:#4da8ff;font-weight:700">60</span> Token Flow
+    </span>
+    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
+      <span style="color:#4da8ff;font-weight:700">60</span> Derivatives
+    </span>
+    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
+      <span style="color:#4da8ff;font-weight:700">90</span> Wallet Prof.
+    </span>
+  </div>
+    </div>
+  </div>
+
+  
+  <div class="summary-block">
+    <p class="summary-text">PENDLE shows concerning holder concentration with protocol contracts controlling 68% of supply, but recent trading activity indicates healthy accumulation by profitable traders. Smart money flow data is missing, creating uncertainty around institutional positioning.</p>
+  </div>
+
+  
+  <div class="section-head">
+    <span class="section-head-label">Intelligence Signals</span>
+    <span class="section-head-line"></span>
+  </div>
+  <div class="findings">
+  <div class="finding" style="--c:#f5a623">
+    <div class="finding-top">
+      <span class="sev-tag" style="color:#f5a623;border-color:#f5a62333;background:#f5a6230d">
+        <span>!</span> WARNING
+      </span>
+      <span class="finding-cat">Holder Risk</span>
+    </div>
+    <h3 class="finding-title">High Protocol Concentration - 68% in Top 4 Addresses</h3>
+    <p class="finding-detail">Extreme concentration with vePendle contract holding 24.2% (68.17M tokens), StakedPendle with 11% (31.02M tokens), Arbitrum bridge at 9.9% (27.95M tokens), and governance multisig at 8.2% (22.95M tokens). Combined protocol-controlled supply creates significant centralization risk despite being functional addresses.</p>
+    <div class="chips"><span class="chip">top holder concentration: 24.2%</span><span class="chip">top 4 holders: 68% of supply</span><span class="chip">vePendle contract: 68.17M tokens</span><span class="chip">protocol addresses: majority holders</span></div>
+  </div>
+  <div class="finding" style="--c:#00e887">
+    <div class="finding-top">
+      <span class="sev-tag" style="color:#00e887;border-color:#00e88733;background:#00e8870d">
+        <span>↑</span> POSITIVE
+      </span>
+      <span class="finding-cat">Market Activity</span>
+    </div>
+    <h3 class="finding-title">Strong Accumulation by Profitable Traders</h3>
+    <p class="finding-detail">Top PnL performers show significant realized profits with healthy ROI. Leading trader achieved $18,014 realized profits with 3.8% ROI across 166 trades. Multiple profitable traders still holding positions, indicating confidence. Recent 7-day buying volume of $216,176 from top PENDLE leaderboard trader.</p>
+    <div class="chips"><span class="chip">top trader realized PnL: $18,014</span><span class="chip">top trader ROI: 3.8%</span><span class="chip">recent accumulation: $216,176 in 7 days</span><span class="chip">profitable trader count: 10+ in leaderboard</span></div>
+  </div>
+  <div class="finding" style="--c:#f5a623">
+    <div class="finding-top">
+      <span class="sev-tag" style="color:#f5a623;border-color:#f5a62333;background:#f5a6230d">
+        <span>!</span> WARNING
+      </span>
+      <span class="finding-cat">Smart Money</span>
+    </div>
+    <h3 class="finding-title">Missing Smart Money Flow Data</h3>
+    <p class="finding-detail">Smart money netflow queries returned data for other tokens but no PENDLE-specific flow information. This creates blind spot for institutional positioning assessment. Flow intelligence shows zero activity across all labeled wallet categories (whales, smart traders, exchanges).</p>
+    <div class="chips"><span class="chip">smart money net flow: data unavailable</span><span class="chip">whale net flow: $0</span><span class="chip">smart trader net flow: $0</span><span class="chip">exchange net flow: $0</span></div>
+  </div>
+  <div class="finding" style="--c:#4d91c8">
+    <div class="finding-top">
+      <span class="sev-tag" style="color:#4d91c8;border-color:#4d91c833;background:#4d91c80d">
+        <span>–</span> NEUTRAL
+      </span>
+      <span class="finding-cat">Liquidity</span>
+    </div>
+    <h3 class="finding-title">Moderate Trading Activity with Bot Presence</h3>
+    <p class="finding-detail">Recent DEX trades show consistent $1.34-$1.35 price range with active bot trading. Average trade sizes range from $12-$2,490, indicating reasonable liquidity depth. Multiple DEX/CEX trading bots active, providing liquidity but also MEV extraction risk.</p>
+    <div class="chips"><span class="chip">price stability: $1.34-$1.35 range</span><span class="chip">average trade size: $12-$2,490</span><span class="chip">bot activity: multiple labeled trading bots</span><span class="chip">trade frequency: consistent hourly activity</span></div>
+  </div>
+  <div class="finding" style="--c:#00e887">
+    <div class="finding-top">
+      <span class="sev-tag" style="color:#00e887;border-color:#00e88733;background:#00e8870d">
+        <span>↑</span> POSITIVE
+      </span>
+      <span class="finding-cat">Wallet Profile</span>
+    </div>
+    <h3 class="finding-title">Diversified Exchange Holdings Reduce Exit Risk</h3>
+    <p class="finding-detail">Exchange holdings distributed across major platforms: Binance (6.2% + 1.1%), Upbit (1.5%), Bybit (1.2% + 0.6%), Crypto.com (1.2% + 0.9%), and Coinbase Prime (0.5%). No single exchange concentration creates exit bottleneck.</p>
+    <div class="chips"><span class="chip">Binance total: 7.3%</span><span class="chip">exchange distribution: 6 major platforms</span><span class="chip">largest exchange holding: 6.2%</span><span class="chip">total exchange exposure: ~15%</span></div>
+  </div></div>
+
+  
+  <div class="section-head">
+    <span class="section-head-label">Action Items</span>
+    <span class="section-head-line"></span>
+  </div>
+  <div class="recs">
+  <div class="rec">
+    <span class="rec-idx">01</span>
+    <span class="rec-body">PENDLE accumulation appears reasonable for risk-tolerant investors given profitable trader positioning and protocol utility</span>
+  </div>
+  <div class="rec">
+    <span class="rec-idx">02</span>
+    <span class="rec-body">Monitor vePendle contract unlock schedules and governance multisig activity for potential supply releases</span>
+  </div>
+  <div class="rec">
+    <span class="rec-idx">03</span>
+    <span class="rec-body">Consider dollar-cost averaging given moderate liquidity and active bot trading environment</span>
+  </div>
+  <div class="rec">
+    <span class="rec-idx">04</span>
+    <span class="rec-body">Track upcoming protocol developments that could affect staking contract token flows</span>
+  </div></div>
+
+  
+  <div class="section-head">
+    <span class="section-head-label">Investigation Trail — 14 queries · 10/14 succeeded</span>
+    <span class="section-head-line"></span>
+  </div>
+  <div class="trail">
+  <div class="trail-row">
+    <span class="trail-status" style="color:#00e887">✓</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research search entities --query PENDLE --chain ethereum</summary>
+      <span class="trail-snip">data: {&quot;tokens&quot;:[],&quot;entities&quot;:[],&quot;total_result</span>
+    </details>
+    <span class="trail-ms" style="color:#00e887">1864ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#f5a623">✗</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research token holders --chain ethereum --token PENDLE_ADDRESS --limit 20</summary>
+      <span class="trail-snip">Command failed: nansen research token holders --chain ethereum --token PENDLE_ADDRESS --limit 20
+</span>
+    </details>
+    <span class="trail-ms" style="color:#00e887">543ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#f5a623">✗</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research token who-bought-sold --chain ethereum --token PENDLE_ADDRESS --days 7</summary>
+      <span class="trail-snip">Command failed: nansen research token who-bought-sold --chain ethereum --token PENDLE_ADDRESS --days 7
+</span>
+    </details>
+    <span class="trail-ms" style="color:#00e887">539ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#f5a623">✗</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research token flow-intelligence --chain ethereum --token PENDLE_ADDRESS</summary>
+      <span class="trail-snip">Command failed: nansen research token flow-intelligence --chain ethereum --token PENDLE_ADDRESS
+</span>
+    </details>
+    <span class="trail-ms" style="color:#00e887">552ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#00e887">✓</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research smart-money netflow --chain ethereum --token PENDLE_ADDRESS --timeframe 7d --limit 10</summary>
+      <span class="trail-snip">data: {&quot;data&quot;:[{&quot;token_address&quot;:&quot;0x57e114b691d</span>
+    </details>
+    <span class="trail-ms" style="color:#f5a623">2162ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#00e887">✓</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research search entities --query 'Pendle Finance' --chain ethereum</summary>
+      <span class="trail-snip">data: {&quot;tokens&quot;:[],&quot;entities&quot;:[],&quot;total_result</span>
+    </details>
+    <span class="trail-ms" style="color:#f5a623">3949ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#00e887">✓</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research token holders --chain ethereum --token 0x808507121B80c02388fAd14726482e061B8da827 --limit 20</summary>
+      <span class="trail-snip">data: {&quot;data&quot;:[{&quot;address&quot;:&quot;0x4f30a9d41b80ecc5b</span>
+    </details>
+    <span class="trail-ms" style="color:#f5a623">2847ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#00e887">✓</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research token flow-intelligence --chain ethereum --token 0x808507121B80c02388fAd14726482e061B8da827</summary>
+      <span class="trail-snip">data: {&quot;data&quot;:[{&quot;public_figure_net_flow_usd&quot;:0</span>
+    </details>
+    <span class="trail-ms" style="color:#f5a623">2996ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#00e887">✓</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research smart-money netflow --chain ethereum --token 0x808507121B80c02388fAd14726482e061B8da827 --timeframe 7d</summary>
+      <span class="trail-snip">data: {&quot;data&quot;:[{&quot;token_address&quot;:&quot;0x57e114b691d</span>
+    </details>
+    <span class="trail-ms" style="color:#f5a623">2146ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#00e887">✓</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research token who-bought-sold --chain ethereum --token 0x808507121B80c02388fAd14726482e061B8da827 --days 7</summary>
+      <span class="trail-snip">data: {&quot;data&quot;:[{&quot;address&quot;:&quot;0x9e08c5499f953c629</span>
+    </details>
+    <span class="trail-ms" style="color:#f5a623">2052ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#00e887">✓</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research token pnl-leaderboard --chain ethereum --token 0x808507121B80c02388fAd14726482e061B8da827 --limit 10</summary>
+      <span class="trail-snip">data: {&quot;error&quot;:&quot;Unknown subcommand: pnl-leader</span>
+    </details>
+    <span class="trail-ms" style="color:#00e887">596ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#f5a623">✗</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research dex trades --chain ethereum --token 0x808507121B80c02388fAd14726482e061B8da827 --limit 100</summary>
+      <span class="trail-snip">Command failed: nansen research dex trades --chain ethereum --token 0x808507121B80c02388fAd14726482e061B8da827 --limit 100
+</span>
+    </details>
+    <span class="trail-ms" style="color:#00e887">523ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#00e887">✓</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research token dex-trades --chain ethereum --token 0x808507121B80c02388fAd14726482e061B8da827 --limit 50</summary>
+      <span class="trail-snip">data: {&quot;data&quot;:[{&quot;block_timestamp&quot;:&quot;2026-03-17T</span>
+    </details>
+    <span class="trail-ms" style="color:#f5a623">2840ms</span>
+  </div>
+  <div class="trail-row">
+    <span class="trail-status" style="color:#00e887">✓</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research token pnl --chain ethereum --token 0x808507121B80c02388fAd14726482e061B8da827 --limit 10</summary>
+      <span class="trail-snip">data: {&quot;data&quot;:[{&quot;trader_address&quot;:&quot;0x9e08c5499f</span>
+    </details>
+    <span class="trail-ms" style="color:#f5a623">4081ms</span>
+  </div></div>
+
+  <div class="footer">
+    Powered by <a href="https://github.com/nansen-ai/nansen-cli" target="_blank">Nansen CLI</a>
+    &nbsp;&middot;&nbsp;
+    Built for <a href="https://x.com/nansen_ai" target="_blank">#NansenCLI Challenge</a>
+  </div>
+
+</div>
+</body>
+</html>

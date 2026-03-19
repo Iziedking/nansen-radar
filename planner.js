@@ -1,116 +1,234 @@
-import { NANSEN_COMMANDS, SUPPORTED_CHAINS, CLAUDE_MODEL, MAX_COMMANDS_PER_STEP } from './config.js';
+import { NANSEN_COMMANDS, SUPPORTED_CHAINS, MAX_COMMANDS_PER_STEP } from './config.js';
+import { callLLM } from './llm.js';
 
-const API_URL = 'https://api.anthropic.com/v1/messages';
+// Robust JSON extractor — handles models that wrap output in markdown fences
+// and fix common LLM JSON generation mistakes
+function extractJSON(text) {
+  // Try 1: strip all code fences then parse directly
+  const stripped = text
+    .replace(/^```[\w]*\s*/gm, '').replace(/^```\s*$/gm, '')
+    .replace(/^~~~[\w]*\s*/gm, '').replace(/^~~~\s*$/gm, '')
+    .trim();
+  try { return JSON.parse(stripped); } catch {}
 
-async function callClaude(systemPrompt, userMessage, apiKey) {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: 4096,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
-    }),
-  });
+  // Try 2: pull the outermost { ... } block from raw text
+  const objMatch = text.match(/\{[\s\S]*\}/);
+  if (objMatch) {
+    try { return JSON.parse(objMatch[0]); } catch {}
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Claude API ${res.status}: ${body.slice(0, 200)}`);
+    // Try 3: repair common LLM JSON mistakes then parse
+    const repaired = objMatch[0]
+      // Missing comma between "value"\n  "key" or "value"\n  }
+      .replace(/"(\s*)\n(\s*)"(?=[^:}])/g, '",\n$2"')
+      // Missing comma between } or ] and next "key"
+      .replace(/([}\]])\s*\n(\s*)"(?=[^:}])/g, '$1,\n$2"')
+      // Trailing commas before } or ]
+      .replace(/,(\s*[}\]])/g, '$1');
+    try { return JSON.parse(repaired); } catch {}
   }
 
-  const data = await res.json();
-  const text = data.content.map(b => b.text || '').join('');
-  return text;
+  return null;
 }
 
-function buildCommandReference() {
-  return NANSEN_COMMANDS.map(c => {
-    const req = c.requires.length ? `Required: ${c.requires.join(', ')}` : 'No required flags';
-    const opt = c.optional.length ? `Optional: ${c.optional.join(', ')}` : '';
-    return `• ${c.command}\n  ${c.description}\n  ${req}${opt ? '\n  ' + opt : ''}\n  Returns: ${c.returns}`;
-  }).join('\n\n');
+// ── Command templates — model never generates these, code builds them ──────────
+
+function buildTokenCommands(chain, address) {
+  return [
+    `nansen research token holders --chain ${chain} --token ${address} --limit 20`,
+    `nansen research token who-bought-sold --chain ${chain} --token ${address}`,
+    `nansen research smart-money netflow --chain ${chain} --token ${address}`,
+    `nansen research token dex-trades --chain ${chain} --token ${address} --limit 20`,
+    `nansen research token pnl-leaderboard --chain ${chain} --token ${address} --limit 20`,
+  ];
 }
 
-const PLANNER_SYSTEM = `You are an onchain intelligence agent. You investigate crypto problems using Nansen CLI commands.
+function buildWalletCommands(chain, address) {
+  return [
+    `nansen research profiler labels --chain ${chain} --address ${address}`,
+    `nansen research profiler pnl-summary --chain ${chain} --address ${address}`,
+    `nansen research profiler transactions --chain ${chain} --address ${address} --limit 20`,
+    `nansen research profiler counterparties --chain ${chain} --address ${address}`,
+  ];
+}
 
-Available commands:
-${buildCommandReference()}
+function buildMarketCommands(chain) {
+  const c = chain || 'ethereum';
+  return [
+    `nansen research smart-money netflow --chain ${c}`,
+    `nansen research token screener --chain ${c} --timeframe 24h --limit 20`,
+    `nansen research smart-money dex-trades --chain ${c}`,
+    `nansen research smart-money holdings --chain ${c}`,
+  ];
+}
 
-Supported chains: ${SUPPORTED_CHAINS.join(', ')}
+// ── Classifier prompt — model only extracts parameters, never generates commands
 
-Your job: given a user's question or problem, return a JSON array of nansen CLI commands to execute.
+const CLASSIFIER_SYSTEM = `You are a query classifier for a crypto research tool.
 
-Rules:
-- Return ONLY valid JSON. No markdown, no explanation. Just a JSON object.
-- Maximum ${MAX_COMMANDS_PER_STEP} commands per batch.
-- Each command must be a complete nansen CLI string ready to execute.
-- Use --limit to keep responses manageable (10-30 rows).
-- Use --fields when you only need specific columns.
-- For token-specific queries, you need the token contract address. If the user gives a symbol, use "research search entities --query <symbol>" first to resolve it.
-- For wallet investigations, use profiler commands.
-- For market-wide scans, use screener and smart-money commands.
-- Think about what data actually answers the user's question.
+Your ONLY job: read the user's query and extract 4 fields. Nothing else.
 
-Response format:
+CRITICAL: Respond with ONLY a JSON object. Start with { end with }. No markdown, no explanation.
+
+Classification rules:
+- queryType "TOKEN": user mentions a token name, contract address for a token, "safe to buy", "rug", "invest in"
+- queryType "WALLET": user mentions "wallet", "portfolio", "holdings of address", "track this address"
+- queryType "MARKET": no specific token/address — broad questions about trends, smart money, what to buy
+
+Chain detection — use EXACT names only:
+ethereum, solana, base, bnb, arbitrum, polygon, optimism, avalanche, linea, scroll, mantle, ronin, sei, sonic, hyperevm
+Default to "ethereum" if chain is not mentioned.
+
+Address: extract any 0x... or base58 address from the query. null if none.
+
+Response format (fill in the values, keep the keys exactly):
 {
-  "intent": "one sentence describing what the user wants to know",
-  "plan": ["nansen research ...", "nansen research ..."],
-  "reasoning": "why these specific queries answer the question"
+  "intent": "one short sentence what user wants to know",
+  "queryType": "TOKEN",
+  "chain": "base",
+  "address": "0x98d0baa52b2d063e780de12f615f963fe8537553",
+  "reasoning": "one sentence why this classification"
 }`;
 
-export async function planInvestigation(query, apiKey) {
-  const response = await callClaude(PLANNER_SYSTEM, query, apiKey);
+const MODE_TO_TYPE = { token: 'TOKEN', wallet: 'WALLET', market: 'MARKET' };
 
-  try {
-    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleaned);
-  } catch {
-    throw new Error(`Failed to parse plan: ${response.slice(0, 300)}`);
+export async function planInvestigation(query, providerConfig, mode) {
+  // Step 1: Model only classifies + extracts parameters (never generates commands)
+  const response = await callLLM(CLASSIFIER_SYSTEM, query, providerConfig);
+  const parsed = extractJSON(response);
+  if (!parsed) throw new Error(`Failed to parse plan: ${response.slice(0, 300)}`);
+
+  // Step 2: Code builds the full command set from templates — reliable regardless of model size
+  const queryType = (mode && MODE_TO_TYPE[mode]) || parsed.queryType || 'TOKEN';
+  const chain = (parsed.chain || 'ethereum').toLowerCase().trim();
+  const address = parsed.address || null;
+
+  let plan;
+  if (queryType === 'WALLET' && address) {
+    plan = buildWalletCommands(chain, address);
+  } else if (queryType === 'MARKET' || !address) {
+    plan = buildMarketCommands(chain);
+  } else {
+    // TOKEN (default) — also handles cases where model misclassifies but address is present
+    plan = buildTokenCommands(chain, address);
   }
+
+  return {
+    intent: parsed.intent || query,
+    queryType,
+    chain,
+    address,
+    plan,
+    reasoning: parsed.reasoning || '',
+  };
 }
 
-const ANALYST_SYSTEM = `You are an onchain intelligence analyst. You receive raw data from Nansen CLI queries and produce a structured investigation report.
+const ANALYST_SYSTEM = `You are an onchain intelligence analyst for degen crypto traders making real investment decisions. Analyze Nansen data and produce a structured risk report.
 
-Your job: analyze the data, find patterns, spot risks, and give actionable insights.
+CRITICAL OUTPUT RULE: Respond with ONLY a raw JSON object. No markdown. No code fences. No explanation. Start with { and end with }. Nothing else.
 
-Rules:
-- Return ONLY valid JSON. No markdown.
-- Be specific with numbers — cite actual values from the data.
-- Identify red flags, green flags, and notable patterns.
-- If data is missing or a query failed, note it but don't fabricate.
-- Give a risk score from 0-100 (0 = extremely dangerous, 100 = very safe).
-- Provide concrete recommendations, not generic advice.
+ANALYSIS RULES:
+- Risk score: 0-100 (0 = extreme danger/rug, 100 = very safe). Be honest and decisive.
+- Cite actual numbers from the data — never vague statements.
+- Max 5 findings. Keep each "detail" field under 120 characters.
+- Keep each "dataPoints" entry under 60 characters.
+- 2 recommendations max. Make them actionable and specific.
+- If a command failed or returned no data, skip that axis — do not fabricate.
 
-Response format:
+WHAT TO LOOK FOR (check each if data available):
+1. SMART MONEY FLOW: Net accumulation or distribution? Exact USD figure. Accumulation = bullish signal.
+2. HOLDER CONCENTRATION: Top 10 wallets % of supply. >50% = danger. Single wallet >10% = red flag.
+3. WHO IS BUYING/SELLING: Are smart money funds buying or retail only? Smart money buying = positive.
+4. DEX LIQUIDITY: From trade data — thin liquidity + large trades = MEV/slippage danger.
+5. PNL OVERHEAD: Large unrealized profits in top holders = sell pressure risk.
+
+RISK LABEL mapping:
+- 80-100: LOW RISK
+- 60-79: MODERATE
+- 40-59: HIGH RISK
+- 0-39: CRITICAL
+
+Output this exact JSON structure (no extra fields, no missing fields):
 {
-  "title": "Short report title",
-  "summary": "2-3 sentence executive summary",
+  "title": "Short report title under 60 chars",
+  "summary": "2 sentences max. Lead with the verdict for a degen trader.",
   "riskScore": 72,
-  "riskLabel": "MODERATE|LOW RISK|HIGH RISK|CRITICAL",
+  "riskLabel": "LOW RISK",
   "findings": [
     {
-      "category": "Smart Money|Holder Risk|Liquidity|Market Activity|Wallet Profile|Derivatives",
-      "severity": "positive|neutral|warning|danger",
-      "title": "Short finding title",
-      "detail": "Detailed explanation with specific numbers from the data",
-      "dataPoints": ["key: value", "key: value"]
+      "category": "Smart Money",
+      "severity": "positive",
+      "title": "Finding title under 50 chars",
+      "detail": "Specific detail with numbers, under 120 chars",
+      "dataPoints": ["metric: value", "metric: value"]
     }
   ],
-  "recommendations": [
-    "Specific actionable recommendation"
-  ],
+  "recommendations": ["Actionable recommendation 1", "Actionable recommendation 2"],
   "needsMoreData": false,
   "followUpCommands": []
+}`;
+
+// Maps whatever the model returns to our expected schema — handles field name variations
+function normalizeAnalysis(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  // Search nested objects for our fields (model sometimes wraps in "report", "analysis", etc.)
+  const flat = flattenObject(raw);
+
+  const score = flat.riskScore ?? flat.risk_score ?? flat.score ?? flat.riskRating ?? flat.rating ?? 50;
+  const label = flat.riskLabel ?? flat.risk_label ?? flat.riskLevel ?? flat.level ?? scoreToLabel(score);
+  const findings = flat.findings ?? flat.signals ?? flat.risks ?? flat.issues ?? [];
+  const recs = flat.recommendations ?? flat.recommendation ?? flat.actions ?? flat.actionItems ?? [];
+
+  return {
+    title:           flat.title ?? flat.reportTitle ?? 'Token Investigation Report',
+    summary:         flat.summary ?? flat.overview ?? flat.description ?? '',
+    riskScore:       typeof score === 'number' ? score : parseInt(score, 10) || 50,
+    riskLabel:       label,
+    findings:        Array.isArray(findings) ? findings.map(normalizeFinding) : [],
+    recommendations: Array.isArray(recs) ? recs.map(r => (typeof r === 'string' ? r : r?.text ?? JSON.stringify(r))) : [],
+    needsMoreData:   flat.needsMoreData ?? flat.needs_more_data ?? false,
+    followUpCommands: flat.followUpCommands ?? flat.follow_up_commands ?? [],
+  };
 }
 
-If you determine more data is needed to answer the question properly, set needsMoreData to true and provide followUpCommands with additional nansen CLI commands to run.`;
+function flattenObject(obj, depth = 0) {
+  if (depth > 3) return obj;
+  let result = { ...obj };
+  for (const val of Object.values(obj)) {
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      Object.assign(result, flattenObject(val, depth + 1));
+    }
+  }
+  return result;
+}
 
-export async function analyzeResults(query, plan, executionResults, apiKey) {
+function normalizeFinding(f) {
+  if (typeof f === 'string') return { category: 'General', severity: 'neutral', title: f, detail: '', dataPoints: [] };
+  return {
+    category:   f.category ?? f.type ?? 'General',
+    severity:   normalizeSeverity(f.severity ?? f.level ?? f.risk ?? 'neutral'),
+    title:      f.title ?? f.name ?? f.finding ?? '',
+    detail:     f.detail ?? f.description ?? f.details ?? '',
+    dataPoints: Array.isArray(f.dataPoints) ? f.dataPoints : (Array.isArray(f.data_points) ? f.data_points : []),
+  };
+}
+
+function normalizeSeverity(s) {
+  const v = String(s).toLowerCase();
+  if (v.includes('danger') || v.includes('critical') || v.includes('high') || v.includes('red')) return 'danger';
+  if (v.includes('warn') || v.includes('medium') || v.includes('moderate') || v.includes('orange')) return 'warning';
+  if (v.includes('pos') || v.includes('good') || v.includes('green') || v.includes('low')) return 'positive';
+  return 'neutral';
+}
+
+function scoreToLabel(score) {
+  if (score >= 80) return 'LOW RISK';
+  if (score >= 60) return 'MODERATE';
+  if (score >= 40) return 'HIGH RISK';
+  return 'CRITICAL';
+}
+
+export async function analyzeResults(query, plan, executionResults, providerConfig, mode) {
   const dataBlock = executionResults.map(r => {
     if (r.success) {
       const trimmed = JSON.stringify(r.data).slice(0, 8000);
@@ -128,12 +246,9 @@ ${dataBlock}
 
 Analyze this data and produce the investigation report.`;
 
-  const response = await callClaude(ANALYST_SYSTEM, userMsg, apiKey);
+  const response = await callLLM(ANALYST_SYSTEM, userMsg, providerConfig, 8192);
 
-  try {
-    const cleaned = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleaned);
-  } catch {
-    throw new Error(`Failed to parse analysis: ${response.slice(0, 300)}`);
-  }
+  const parsed = extractJSON(response);
+  if (!parsed) throw new Error(`Failed to parse analysis: ${response.slice(0, 300)}`);
+  return normalizeAnalysis(parsed) || parsed;
 }

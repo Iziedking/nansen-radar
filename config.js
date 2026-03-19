@@ -164,3 +164,10 @@ export const SUPPORTED_CHAINS = [
 export const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 export const MAX_AGENT_STEPS = 4;
 export const MAX_COMMANDS_PER_STEP = 5;
+
+// LLM provider defaults
+export const DEFAULT_OLLAMA_MODEL      = 'llama3.2';
+export const DEFAULT_OLLAMA_BASE_URL   = 'http://127.0.0.1:11434';
+export const DEFAULT_OPENCLAW_BASE_URL = 'http://127.0.0.1:18789';
+export const DEFAULT_OPENROUTER_MODEL  = 'meta-llama/llama-3.1-8b-instruct:free';
+export const DEFAULT_GEMINI_MODEL      = 'gemini-1.5-flash';

@@ -1,144 +1,11 @@
-export function generateReport(investigation) {
-  const { query, analysis, results, totalCalls, timestamp, plan } = investigation;
-  const findings = analysis.findings || [];
-  const recommendations = analysis.recommendations || [];
-  const SEV_ORDER = { danger: 0, warning: 1, neutral: 2, positive: 3 };
-  const topFinding = [...findings].sort((a, b) => (SEV_ORDER[a.severity] ?? 4) - (SEV_ORDER[b.severity] ?? 4))[0];
-
-  const riskScore = analysis.riskScore ?? 0;
-  const riskColor = riskScore >= 70 ? '#00e887' : riskScore >= 40 ? '#f5a623' : '#ff3b5c';
-  const riskBg    = riskScore >= 70 ? 'rgba(0,232,135,0.08)' : riskScore >= 40 ? 'rgba(245,166,35,0.08)' : 'rgba(255,59,92,0.08)';
-  const riskBorder= riskScore >= 70 ? 'rgba(0,232,135,0.25)' : riskScore >= 40 ? 'rgba(245,166,35,0.25)' : 'rgba(255,59,92,0.25)';
-
-  const severityMeta = {
-    positive: { color: '#00e887', icon: '↑', label: 'POSITIVE' },
-    neutral:  { color: '#4d91c8', icon: '–', label: 'NEUTRAL'  },
-    warning:  { color: '#f5a623', icon: '!', label: 'WARNING'  },
-    danger:   { color: '#ff3b5c', icon: '↓', label: 'CRITICAL' },
-  };
-
-  // ── RADAR CHART COMPUTATION ──────────────────────────────────────
-  const RADAR_CATS = [
-    { key: 'smart',   label: 'Smart\nMoney'  },
-    { key: 'holder',  label: 'Holder\nConc.' },
-    { key: 'liquid',  label: 'Liquidity'     },
-    { key: 'flow',    label: 'Token\nFlow'   },
-    { key: 'deriv',   label: 'Derivatives'   },
-    { key: 'wallet',  label: 'Wallet\nProf.' },
-  ];
-  const SEV_DELTA = { positive: 30, neutral: 0, warning: -20, danger: -40 };
-  const catScores = RADAR_CATS.map(({ key }) => {
-    const rel = findings.filter(f => (f.category || '').toLowerCase().includes(key));
-    const delta = rel.reduce((s, f) => s + (SEV_DELTA[f.severity] ?? 0), 0);
-    return Math.max(10, Math.min(100, 60 + delta));
-  });
-
-  const CX = 110, CY = 110, R = 88;
-  function radarPoint(i, score) {
-    const angle = (i * 60 - 90) * Math.PI / 180;
-    const r = (score / 100) * R;
-    return [CX + r * Math.cos(angle), CY + r * Math.sin(angle)];
-  }
-  function labelPoint(i) {
-    const angle = (i * 60 - 90) * Math.PI / 180;
-    return [CX + (R + 18) * Math.cos(angle), CY + (R + 18) * Math.sin(angle)];
-  }
-
-  const radarPoints = catScores.map((s, i) => radarPoint(i, s).join(',')).join(' ');
-  const ringPoints = [25, 50, 75].map(pct =>
-    RADAR_CATS.map((_, i) => radarPoint(i, pct).join(',')).join(' ')
-  );
-  const axisLines = RADAR_CATS.map((_, i) => {
-    const [x, y] = radarPoint(i, 100);
-    return `<line x1="${CX}" y1="${CY}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(77,168,255,0.15)" stroke-width="1"/>`;
-  }).join('');
-  const rings = ringPoints.map(pts =>
-    `<polygon points="${pts}" fill="none" stroke="rgba(77,168,255,0.12)" stroke-width="1"/>`
-  ).join('');
-  const axisLabels = RADAR_CATS.map(({ label }, i) => {
-    const [lx, ly] = labelPoint(i);
-    const lines = label.split('\n');
-    const dyOffset = lines.length > 1 ? -6 : 0;
-    return lines.map((ln, li) =>
-      `<text x="${lx.toFixed(1)}" y="${(ly + dyOffset + li * 11).toFixed(1)}" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">${ln}</text>`
-    ).join('');
-  }).join('');
-
-  const radarSvg = `
-  <svg viewBox="0 0 220 220" width="220" height="220" style="overflow:visible;display:block;margin:0 auto">
-    ${rings}
-    ${axisLines}
-    <polygon points="${radarPoints}" fill="rgba(77,168,255,0.12)" stroke="#4da8ff" stroke-width="1.5"/>
-    ${catScores.map((s, i) => {
-      const [px, py] = radarPoint(i, s);
-      return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3" fill="#4da8ff"/>`;
-    }).join('')}
-    ${axisLabels}
-  </svg>
-  <div style="display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:14px">
-    ${RADAR_CATS.map(({ label }, i) => `
-    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
-      <span style="color:#4da8ff;font-weight:700">${catScores[i]}</span> ${label.replace('\n', ' ')}
-    </span>`).join('')}
-  </div>`;
-
-  // ── INVESTIGATION TIMELINE HTML ───────────────────────────────────
-  const trailHtml = results.map(r => {
-    const preview = r.success && r.data
-      ? Object.entries(r.data).filter(([k]) => k !== 'success').slice(0, 3)
-          .map(([k, v]) => `${k}: ${JSON.stringify(v).slice(0, 40)}`).join(' · ')
-      : (r.error || 'no output');
-    const cmd = escHtml(r.command || '');
-    const ms = r.elapsed ? `${r.elapsed}ms` : '';
-    const msColor = !r.elapsed ? 'var(--dim)' : r.elapsed < 2000 ? '#00e887' : r.elapsed < 5000 ? '#f5a623' : '#ff3b5c';
-    const statusColor = r.success ? '#00e887' : '#f5a623';
-    const statusIcon = r.success ? '✓' : '✗';
-    return `
-  <div class="trail-row">
-    <span class="trail-status" style="color:${statusColor}">${statusIcon}</span>
-    <details class="trail-details">
-      <summary class="trail-cmd">${cmd}</summary>
-      <span class="trail-snip">${escHtml(preview)}</span>
-    </details>
-    <span class="trail-ms" style="color:${msColor}">${ms}</span>
-  </div>`;
-  }).join('');
-
-  const findingsHtml = findings.map(f => {
-    const meta = severityMeta[f.severity] || severityMeta.neutral;
-    const chips = (f.dataPoints || []).map(d =>
-      `<span class="chip">${escHtml(d)}</span>`).join('');
-    return `
-  <div class="finding" style="--c:${meta.color}">
-    <div class="finding-top">
-      <span class="sev-tag" style="color:${meta.color};border-color:${meta.color}33;background:${meta.color}0d">
-        <span>${meta.icon}</span> ${meta.label}
-      </span>
-      <span class="finding-cat">${escHtml(f.category)}</span>
-    </div>
-    <h3 class="finding-title">${escHtml(f.title)}</h3>
-    <p class="finding-detail">${escHtml(f.detail)}</p>
-    ${chips ? `<div class="chips">${chips}</div>` : ''}
-  </div>`;
-  }).join('');
-
-  const recsHtml = recommendations.map((r, i) => `
-  <div class="rec">
-    <span class="rec-idx">${String(i + 1).padStart(2, '0')}</span>
-    <span class="rec-body">${escHtml(r)}</span>
-  </div>`).join('');
-
-  const dateStr = timestamp ? timestamp.split('T')[0] : '';
-  const successCount = results.filter(r => r.success).length;
-
-  return `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nansen Radar — ${escHtml(query.slice(0, 60))}</title>
-<meta property="og:title" content="Nansen Radar: ${escHtml(query.slice(0, 50))} — ${escHtml(analysis.riskLabel || 'UNKNOWN')} (${riskScore}/100)">
-<meta property="og:description" content="${escHtml((analysis.summary || '').slice(0, 200))}">
+<title>Nansen Radar — Is Kaito safe to buy? 0x98d0baa52b2d063e780de12f615f963fe853</title>
+<meta property="og:title" content="Nansen Radar: Is Kaito safe to buy? 0x98d0baa52b2d063e780de12f61 — LOW RISK (72/100)">
+<meta property="og:description" content="Safe to buy with some concerns, consider smart money flow.">
 <meta property="og:type" content="website">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
@@ -246,8 +113,8 @@ body::before{
 }
 .score-number{
   font-size:112px;font-weight:700;line-height:1;
-  color:${riskColor};
-  text-shadow:0 0 60px ${riskColor}55;
+  color:#00e887;
+  text-shadow:0 0 60px #00e88755;
   font-variant-numeric:tabular-nums;
   letter-spacing:-4px;
 }
@@ -260,7 +127,7 @@ body::before{
   display:inline-flex;align-items:center;
   padding:6px 18px;border-radius:100px;
   font-size:11px;font-weight:700;letter-spacing:0.15em;
-  background:${riskBg};color:${riskColor};border:1px solid ${riskBorder};
+  background:rgba(0,232,135,0.08);color:#00e887;border:1px solid rgba(0,232,135,0.25);
 }
 .score-right{
   background:var(--navy1);
@@ -426,12 +293,12 @@ body::before{
 
   <div class="share-card">
     <div class="share-left">
-      <div class="share-subject">${escHtml(query.slice(0, 80))}</div>
-      ${topFinding ? `<div class="share-finding">${escHtml(topFinding.title)}</div>` : ''}
+      <div class="share-subject">Is Kaito safe to buy? 0x98d0baa52b2d063e780de12f615f963fe8537553 on base</div>
+      <div class="share-finding"></div>
     </div>
     <div class="share-right">
-      <span class="score-badge">${escHtml(analysis.riskLabel || 'UNKNOWN')}</span>
-      <span class="share-score-mini" style="color:${riskColor}">${riskScore}</span>
+      <span class="score-badge">LOW RISK</span>
+      <span class="share-score-mini" style="color:#00e887">72</span>
     </div>
   </div>
 
@@ -442,54 +309,120 @@ body::before{
     </div>
     <div class="topbar-right">
       <span class="live-dot">Analysis Complete</span>
-      <span class="topbar-date">${escHtml(dateStr)}</span>
+      <span class="topbar-date">2026-03-19</span>
     </div>
   </div>
 
   <div class="query-section">
     <div class="query-label">Investigation Query</div>
-    <div class="query-text">${escHtml(query)}</div>
+    <div class="query-text">Is Kaito safe to buy? 0x98d0baa52b2d063e780de12f615f963fe8537553 on base</div>
   </div>
 
   <div class="score-hero">
     <div class="score-main">
       <div>
-        <span class="score-number">${riskScore}</span><span class="score-denom">/100</span>
+        <span class="score-number">72</span><span class="score-denom">/100</span>
       </div>
       <div class="score-label-row">
-        <span class="score-badge">${escHtml(analysis.riskLabel || 'UNKNOWN')}</span>
+        <span class="score-badge">LOW RISK</span>
       </div>
     </div>
     <div class="score-right">
-      ${radarSvg}
+      
+  <svg viewBox="0 0 220 220" width="220" height="220" style="overflow:visible;display:block;margin:0 auto">
+    <polygon points="110,88 129.05255888325766,99 129.05255888325766,121 110,132 90.94744111674234,121 90.94744111674235,99" fill="none" stroke="rgba(77,168,255,0.12)" stroke-width="1"/><polygon points="110,66 148.10511776651532,88 148.10511776651532,132 110,154 71.8948822334847,132 71.89488223348471,88" fill="none" stroke="rgba(77,168,255,0.12)" stroke-width="1"/><polygon points="110,44 167.15767664977295,77 167.15767664977295,143 110,176 52.84232335022705,143 52.842323350227055,77" fill="none" stroke="rgba(77,168,255,0.12)" stroke-width="1"/>
+    <line x1="110" y1="110" x2="110.0" y2="22.0" stroke="rgba(77,168,255,0.15)" stroke-width="1"/><line x1="110" y1="110" x2="186.2" y2="66.0" stroke="rgba(77,168,255,0.15)" stroke-width="1"/><line x1="110" y1="110" x2="186.2" y2="154.0" stroke="rgba(77,168,255,0.15)" stroke-width="1"/><line x1="110" y1="110" x2="110.0" y2="198.0" stroke="rgba(77,168,255,0.15)" stroke-width="1"/><line x1="110" y1="110" x2="33.8" y2="154.0" stroke="rgba(77,168,255,0.15)" stroke-width="1"/><line x1="110" y1="110" x2="33.8" y2="66.0" stroke="rgba(77,168,255,0.15)" stroke-width="1"/>
+    <polygon points="110,57.2 155.72614131981837,83.60000000000001 155.72614131981837,136.4 110,162.8 64.27385868018163,136.4 64.27385868018165,83.6" fill="rgba(77,168,255,0.12)" stroke="#4da8ff" stroke-width="1.5"/>
+    <circle cx="110.0" cy="57.2" r="3" fill="#4da8ff"/><circle cx="155.7" cy="83.6" r="3" fill="#4da8ff"/><circle cx="155.7" cy="136.4" r="3" fill="#4da8ff"/><circle cx="110.0" cy="162.8" r="3" fill="#4da8ff"/><circle cx="64.3" cy="136.4" r="3" fill="#4da8ff"/><circle cx="64.3" cy="83.6" r="3" fill="#4da8ff"/>
+    <text x="110.0" y="-2.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Smart</text><text x="110.0" y="9.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Money</text><text x="201.8" y="51.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Holder</text><text x="201.8" y="62.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Conc.</text><text x="201.8" y="163.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Liquidity</text><text x="110.0" y="210.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Token</text><text x="110.0" y="221.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Flow</text><text x="18.2" y="163.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Derivatives</text><text x="18.2" y="51.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Wallet</text><text x="18.2" y="62.0" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#6b7fa8">Prof.</text>
+  </svg>
+  <div style="display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:14px">
+    
+    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
+      <span style="color:#4da8ff;font-weight:700">60</span> Smart Money
+    </span>
+    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
+      <span style="color:#4da8ff;font-weight:700">60</span> Holder Conc.
+    </span>
+    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
+      <span style="color:#4da8ff;font-weight:700">60</span> Liquidity
+    </span>
+    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
+      <span style="color:#4da8ff;font-weight:700">60</span> Token Flow
+    </span>
+    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
+      <span style="color:#4da8ff;font-weight:700">60</span> Derivatives
+    </span>
+    <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">
+      <span style="color:#4da8ff;font-weight:700">60</span> Wallet Prof.
+    </span>
+  </div>
     </div>
   </div>
 
-  ${analysis.summary ? `
+  
   <div class="summary-block">
-    <p class="summary-text">${escHtml(analysis.summary)}</p>
-  </div>` : ''}
+    <p class="summary-text">Safe to buy with some concerns, consider smart money flow.</p>
+  </div>
 
-  ${findings.length ? `
+  
   <div class="section-head">
     <span class="section-head-label">Intelligence Signals</span>
     <span class="section-head-line"></span>
   </div>
-  <div class="findings">${findingsHtml}</div>` : ''}
+  <div class="findings">
+  <div class="finding" style="--c:#4d91c8">
+    <div class="finding-top">
+      <span class="sev-tag" style="color:#4d91c8;border-color:#4d91c833;background:#4d91c80d">
+        <span>–</span> NEUTRAL
+      </span>
+      <span class="finding-cat">Holder Concentration</span>
+    </div>
+    <h3 class="finding-title"></h3>
+    <p class="finding-detail"></p>
+    
+  </div>
+  <div class="finding" style="--c:#4d91c8">
+    <div class="finding-top">
+      <span class="sev-tag" style="color:#4d91c8;border-color:#4d91c833;background:#4d91c80d">
+        <span>–</span> NEUTRAL
+      </span>
+      <span class="finding-cat">Smart Money Flow</span>
+    </div>
+    <h3 class="finding-title"></h3>
+    <p class="finding-detail"></p>
+    <div class="chips"><span class="chip">Net accumulation: $1,046,242,982.55</span><span class="chip">Smart money funds only</span></div>
+  </div></div>
 
-  ${recommendations.length ? `
+  
   <div class="section-head">
     <span class="section-head-label">Action Items</span>
     <span class="section-head-line"></span>
   </div>
-  <div class="recs">${recsHtml}</div>` : ''}
+  <div class="recs">
+  <div class="rec">
+    <span class="rec-idx">01</span>
+    <span class="rec-body">Buy with caution, monitor smart money flow for accumulation</span>
+  </div>
+  <div class="rec">
+    <span class="rec-idx">02</span>
+    <span class="rec-body">Keep a close eye on largest wallet concentration (&gt;10%)</span>
+  </div></div>
 
-  ${results.length ? `
+  
   <div class="section-head">
-    <span class="section-head-label">Investigation Trail — ${totalCalls} queries · ${successCount}/${totalCalls} succeeded</span>
+    <span class="section-head-label">Investigation Trail — 1 queries · 1/1 succeeded</span>
     <span class="section-head-line"></span>
   </div>
-  <div class="trail">${trailHtml}</div>` : ''}
+  <div class="trail">
+  <div class="trail-row">
+    <span class="trail-status" style="color:#00e887">✓</span>
+    <details class="trail-details">
+      <summary class="trail-cmd">nansen research token holders --chain base --token 0x98d0baa52b2d063e780de12f615f963fe8537553 --limit 20</summary>
+      <span class="trail-snip">data: {&quot;data&quot;:[{&quot;address&quot;:&quot;0x50ffe6019c38e4135</span>
+    </details>
+    <span class="trail-ms" style="color:#f5a623">2159ms</span>
+  </div></div>
 
   <div class="footer">
     Powered by <a href="https://github.com/nansen-ai/nansen-cli" target="_blank">Nansen CLI</a>
@@ -499,14 +432,4 @@ body::before{
 
 </div>
 </body>
-</html>`;
-}
-
-function escHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
+</html>
