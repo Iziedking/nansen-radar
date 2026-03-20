@@ -2,7 +2,8 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from '
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { investigate } from './agent.js';
-import { sendNotifications } from './notifier.js';
+import { sendNotifications, buildNotificationText } from './notifier.js';
+import { fetchTokenPrice, formatPriceAlert } from './price.js';
 
 const WATCH_DIR  = join(homedir(), '.nansen-radar');
 const WATCH_FILE = join(WATCH_DIR, 'watches.json');
@@ -25,7 +26,7 @@ export function saveWatches(watches) {
   renameSync(WATCH_TMP, WATCH_FILE);
 }
 
-export function addWatch(query, interval, notifySpecs = [], mode = null) {
+export function addWatch(query, interval, notifySpecs = [], mode = null, priceAlertThreshold = null) {
   parseCronInterval(interval); // validate before saving
 
   const watch = {
@@ -34,6 +35,8 @@ export function addWatch(query, interval, notifySpecs = [], mode = null) {
     interval,
     notify: notifySpecs,
     mode: mode || null,
+    priceAlertThreshold: priceAlertThreshold ? parseFloat(priceAlertThreshold) : null,
+    lastPrice: null,
     createdAt: new Date().toISOString(),
     lastRun: null,
     lastRiskScore: null,
@@ -73,7 +76,19 @@ export function parseNotifySpec(str) {
     if (colonIdx === -1) throw new Error(`telegram notify spec requires format: telegram:BOT_TOKEN:CHAT_ID`);
     return { type: 'telegram', botToken: rest.slice(0, colonIdx), chatId: rest.slice(colonIdx + 1) };
   }
-  throw new Error(`Unknown notify type in "${str}". Supported: discord:URL | slack:URL | telegram:TOKEN:CHAT_ID`);
+  if (str.startsWith('whatsapp:')) {
+    const phone = str.slice('whatsapp:'.length);
+    if (!phone) throw new Error(`whatsapp notify spec requires format: whatsapp:+1234567890`);
+    return { type: 'whatsapp', phone };
+  }
+  if (str.startsWith('openclaw:')) {
+    // Format: openclaw:PLATFORM:TARGET  (e.g. openclaw:whatsapp:+1234567890)
+    const rest = str.slice('openclaw:'.length);
+    const colonIdx = rest.indexOf(':');
+    if (colonIdx === -1) throw new Error(`openclaw notify spec requires format: openclaw:PLATFORM:TARGET`);
+    return { type: 'openclaw', platform: rest.slice(0, colonIdx), to: rest.slice(colonIdx + 1) };
+  }
+  throw new Error(`Unknown notify type in "${str}". Supported: discord:URL | slack:URL | telegram:TOKEN:CHAT_ID | whatsapp:+NUMBER | openclaw:PLATFORM:TARGET`);
 }
 
 // ── Cron interval parsing ─────────────────────────────────────────────────────
@@ -130,20 +145,37 @@ export async function runDaemon(providerConfig) {
     // Run immediately on daemon start
     runWatchJob(watch, providerConfig);
 
-    // Then on interval
     setInterval(() => runWatchJob(watch, providerConfig), intervalMs);
   }
 
   console.log('');
 
-  // Keep process alive
   process.stdin.resume();
 }
 
 async function runWatchJob(watch, providerConfig) {
   console.log(`\n\x1b[36m  [${watch.id}] Running watch job...\x1b[0m`);
   try {
+    // Price check before investigation (if address known and price alert configured)
+    let priceAlert = null;
+    let currentPrice = null;
+    if (watch.priceAlertThreshold && watch.plan?.address) {
+      const priceInfo = await fetchTokenPrice(watch.plan?.chain || 'ethereum', watch.plan.address);
+      if (priceInfo) {
+        currentPrice = priceInfo.price;
+        priceAlert = formatPriceAlert(priceInfo, watch.priceAlertThreshold, watch.lastPrice);
+        if (priceAlert) console.log(`\x1b[33m  [${watch.id}] ${priceAlert}\x1b[0m`);
+      }
+    }
+
     const result = await investigate(watch.query, providerConfig, watch.mode);
+
+    if (priceAlert) {
+      result.priceAlert = priceAlert;
+      const originalText = result.analysis?.summary || '';
+      if (result.analysis) result.analysis.summary = `${priceAlert}\n\n${originalText}`;
+    }
+
     await sendNotifications(watch.notify, result);
 
     // Persist last run metadata
@@ -152,6 +184,7 @@ async function runWatchJob(watch, providerConfig) {
     if (idx !== -1) {
       watches[idx].lastRun = new Date().toISOString();
       watches[idx].lastRiskScore = result.analysis?.riskScore ?? null;
+      if (currentPrice != null) watches[idx].lastPrice = currentPrice;
       saveWatches(watches);
     }
 

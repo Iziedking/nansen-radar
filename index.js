@@ -4,6 +4,7 @@ import { investigate } from './agent.js';
 import { generateReport } from './report.js';
 import { buildProviderConfig } from './llm.js';
 import { addWatch, removeWatch, listWatches, runDaemon, parseNotifySpec } from './watcher.js';
+import { startBotServer } from './bot.js';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
@@ -45,6 +46,7 @@ const USAGE = `
     node index.js "<question>" --mode market
     node index.js "<question>" --no-open        (skip auto browser open)
     node index.js "<question>" --json           (also save raw JSON)
+    node index.js "<question>" --quiet --stdout-json   (clean JSON to stdout — for scripts/OpenClaw)
 
   Override provider for a single run (without changing .env):
     node index.js "<question>" --provider ollama
@@ -68,11 +70,29 @@ const USAGE = `
     node index.js --watch-remove <id>           (remove a watch)
     node index.js --watch-daemon                (start scheduler — keep running)
 
+  ── BOT MODE (inbound queries from WhatsApp/Telegram/Discord) ────────
+
+    node index.js --bot                         (start webhook server on port 3456)
+    node index.js --bot --bot-port 4000         (custom port)
+
+    After starting, register with OpenClaw:
+      openclaw webhook add --url http://127.0.0.1:3456/webhook --platform whatsapp
+      openclaw webhook add --url http://127.0.0.1:3456/webhook --platform telegram
+
   ── NOTIFICATION FORMATS ─────────────────────────────────────────────
 
-    discord:https://discord.com/api/webhooks/ID/TOKEN
-    slack:https://hooks.slack.com/services/ID/TOKEN
-    telegram:BOT_TOKEN:CHAT_ID
+    discord:https://discord.com/api/webhooks/ID/TOKEN   (rich embed)
+    slack:https://hooks.slack.com/services/ID/TOKEN     (plain text)
+    telegram:BOT_TOKEN:CHAT_ID                          (MarkdownV2)
+    whatsapp:+1234567890                                (via OpenClaw)
+
+  ── PRICE ALERTS (with --watch-add) ──────────────────────────────────
+
+    --price-alert 10    alert if price moves ±10% since last check
+    --price-alert 5     alert if price moves ±5%
+
+    node index.js --watch-add "0x98d0... on base" --interval 1h \\
+      --price-alert 10 --notify "whatsapp:+1234567890"
 
   ── PROVIDER SETUP (set in .env — no need to type every time) ────────
 
@@ -131,6 +151,16 @@ function parseArgs(argv) {
       args.provider = argv[++i];
     } else if (arg === '--model' && argv[i + 1]) {
       args.model = argv[++i];
+    } else if (arg === '--bot') {
+      args.bot = true;
+    } else if (arg === '--bot-port' && argv[i + 1]) {
+      args.botPort = parseInt(argv[++i], 10);
+    } else if (arg === '--price-alert' && argv[i + 1]) {
+      args.priceAlert = argv[++i];
+    } else if (arg === '--quiet') {
+      args.quiet = true;
+    } else if (arg === '--stdout-json') {
+      args.stdoutJson = true;
     } else if (!arg.startsWith('--') && !args.query) {
       args.query = arg;
     }
@@ -227,7 +257,7 @@ async function main() {
       process.exit(1);
     }
     try {
-      const watch = addWatch(args.query, args.interval, notifySpecs, args.mode || null);
+      const watch = addWatch(args.query, args.interval, notifySpecs, args.mode || null, args.priceAlert || null);
       console.log(`\n  \x1b[32m✓ Watch added: ${watch.id}\x1b[0m`);
       console.log(`\x1b[90m  Query:    ${watch.query}\x1b[0m`);
       console.log(`\x1b[90m  Interval: ${watch.interval}\x1b[0m`);
@@ -245,6 +275,11 @@ async function main() {
     return;
   }
 
+  if (args.bot) {
+    startBotServer(providerConfig, args.botPort || 3456);
+    return;
+  }
+
   // ── Standard investigation ────────────────────────────────────────────────
 
   if (!args.query) {
@@ -253,28 +288,34 @@ async function main() {
   }
 
   try {
-    const result = await investigate(args.query, providerConfig, args.mode);
+    const result = await investigate(args.query, providerConfig, args.mode, args.quiet);
+
+    // --stdout-json: print clean JSON to stdout for OpenClaw exec tool / scripting
+    if (args.stdoutJson) {
+      process.stdout.write(JSON.stringify(result) + '\n');
+      return;
+    }
 
     const html = generateReport(result);
     const reportsDir = fileURLToPath(new URL('./reports', import.meta.url));
     const slug = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const outPath = resolve(args.output || `${reportsDir}/report-${slug}.html`);
     mkdirSync(dirname(outPath), { recursive: true });
-    console.log(`\x1b[90m  Saving to: ${outPath}\x1b[0m`);
+    if (!args.quiet) console.log(`\x1b[90m  Saving to: ${outPath}\x1b[0m`);
     writeFileSync(outPath, html);
-    console.log(`\x1b[32m  ✓ Report saved:\x1b[0m ${outPath}`);
+    if (!args.quiet) console.log(`\x1b[32m  ✓ Report saved:\x1b[0m ${outPath}`);
 
     if (args.json) {
       const jsonPath = outPath.replace(/\.html$/, '.json');
       writeFileSync(jsonPath, JSON.stringify(result, null, 2));
-      console.log(`\x1b[90m  JSON saved: ${jsonPath}\x1b[0m`);
+      if (!args.quiet) console.log(`\x1b[90m  JSON saved: ${jsonPath}\x1b[0m`);
     }
 
-    if (args.open) {
+    if (args.open && !args.quiet) {
       openFile(outPath);
     }
 
-    console.log('');
+    if (!args.quiet) console.log('');
   } catch (err) {
     console.error(`\n\x1b[31m  Error: ${err.message}\x1b[0m\n`);
     process.exit(1);

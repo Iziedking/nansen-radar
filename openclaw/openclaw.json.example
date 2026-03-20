@@ -1,0 +1,21 @@
+{
+  "_comment": "Copy to ~/.openclaw/openclaw.json — fill in your values",
+  "workspace": "~/.openclaw/workspace",
+  "gateway": {
+    "mode": "local",
+    "port": 18789
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/claude-sonnet-4-20250514"
+      }
+    }
+  },
+  "channels": {
+    "whatsapp": {
+      "dmPolicy": "open",
+      "allowFrom": ["*"]
+    }
+  }
+}

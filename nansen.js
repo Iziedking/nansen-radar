@@ -59,24 +59,35 @@ export async function runHealthCheck() {
   });
 }
 
-export async function executeBatch(commands) {
-  const results = [];
+export async function executeBatch(commands, quiet = false) {
+  const _out = quiet ? () => {} : (s) => process.stdout.write(s);
 
-  for (let i = 0; i < commands.length; i++) {
-    const cmd = commands[i];
-    process.stdout.write(`\x1b[90m  [${i + 1}/${commands.length}] ${cmd}\x1b[0m`);
+  _out(`\x1b[90m  Running ${commands.length} queries in parallel...\x1b[0m\n`);
 
-    const result = await executeNansenCommand(cmd);
-    results.push(result);
+  const settled = await Promise.allSettled(commands.map(cmd => executeNansenCommand(cmd)));
+
+  const results = settled.map((s, i) => {
+    const result = s.status === 'fulfilled' ? s.value : {
+      command: commands[i],
+      elapsed: 0,
+      success: false,
+      data: null,
+      error: s.reason?.message || 'Unknown error',
+      raw: null,
+    };
 
     if (result.success) {
-      process.stdout.write(` \x1b[32m✓\x1b[0m \x1b[90m${result.elapsed}ms\x1b[0m\n`);
+      _out(`\x1b[90m  ✓ ${result.command} \x1b[32m(${result.elapsed}ms)\x1b[0m\n`);
     } else {
-      process.stdout.write(` \x1b[33m✗\x1b[0m \x1b[90m${result.error}\x1b[0m\n`);
-      const hint = result.raw ? result.raw.trim().split('\n')[0] : '(no output)';
-      process.stdout.write(`\x1b[90m     → ${hint}\x1b[0m\n`);
+      _out(`\x1b[90m  ✗ ${result.command} — ${result.error}\x1b[0m\n`);
+      if (result.raw) {
+        const hint = result.raw.trim().split('\n')[0];
+        _out(`\x1b[90m    → ${hint}\x1b[0m\n`);
+      }
     }
-  }
+
+    return result;
+  });
 
   return results;
 }

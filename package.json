@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "description": "AI agent for onchain due diligence — powered by Nansen CLI and Claude",
   "type": "module",
-  "main": "src/index.js",
+  "main": "index.js",
   "bin": {
-    "nansen-radar": "./src/index.js"
+    "nansen-radar": "./index.js"
   },
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node index.js",
+    "daemon": "node index.js --watch-daemon",
+    "bot": "node index.js --bot"
   },
   "keywords": [
     "nansen",

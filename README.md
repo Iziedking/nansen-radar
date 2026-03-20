@@ -1,198 +1,322 @@
-# Nansen Radar
+# nansen-radar
 
-Onchain intelligence agent for pre-trade due diligence. Powered by [Nansen CLI](https://github.com/nansen-ai/nansen-cli).
-
-Ask a question in plain English. The agent plans an investigation, runs the right Nansen queries, analyzes the data, and produces a scored risk report.
+AI-powered onchain due diligence agent. Ask a question in plain English — it runs Nansen CLI queries, analyzes the data with an LLM, and gives you a risk score, findings, and recommendations. Use it from the terminal, schedule automated alerts, or chat with it directly from WhatsApp, Telegram, or Discord.
 
 ---
 
-## The Problem It Solves
+## Quick Start (5 minutes)
 
-A wallet recently swapped $50 million USDT for AAVE tokens and received $36,000 worth back a 99.9% loss absorbed by MEV attacks and protocol fees. The wallet had no intelligence on liquidity depth, token flow concentration, or on-chain routing risk before executing.
-
-This is not rare. It is the default outcome for anyone moving size without reading the chain first.
-
-Nansen Radar changes that. Before you swap, bridge, or enter a position, the agent queries smart money behavior, holder concentration, token flow patterns, and liquidity dynamics then tells you what the data says. If the route is compromised, the pool is thin, or whales are positioned against the trade, you know before you sign.
-
----
-
-## What It Does
-
-- Analyzes token safety, holder distribution, and concentration risk
-- Detects smart money accumulation or distribution before it moves price
-- Flags MEV-exposed routes and low-liquidity pools before you enter
-- Identifies who bought, who sold, and what labeled wallets are holding
-- Profiles wallet behavior and counterparty risk
-- Monitors unusual transfer patterns, large outflows, and suspicious flow intelligence
-- Covers derivatives; perp screener, open interest, and positioning data
-
-The agent picks the right Nansen endpoints for your question. You do not configure anything you ask, it investigates.
-
----
-
-## How It Works
-
-```
-User query (plain English)
-        │
-        ▼
-Claude reads the full Nansen command schema
-and writes an investigation plan
-        │
-        ▼
-Agent executes 5–15 Nansen CLI queries
-        │
-        ▼
-Claude analyzes all returned data,
-identifies patterns and risk signals
-        │
-        ▼
-If more data is needed, agent runs
-targeted follow-up queries (max 4 rounds)
-        │
-        ▼
-Final report: risk score, findings,
-recommendations saved as HTML
-```
-
----
-
-## Prerequisites
-
-**Nansen CLI**
+**1. Install Nansen CLI and authenticate**
 ```bash
 npm install -g nansen-cli
 nansen login --api-key <your-nansen-api-key>
 ```
 
-**Claude API key**
-
-Create a `.env` file in the project root:
-```
-ANTHROPIC_API_KEY=sk-ant-your-key-here
-```
-
-Or export it directly:
+**2. Install Ollama (free, local LLM — no API cost)**
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-your-key-here
+# Windows
+winget install Ollama.Ollama
+
+# macOS / Linux
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Pull a model
+ollama pull llama3.2
 ```
 
----
-
-## Install
-
+**3. Clone and configure**
 ```bash
-git https://github.com/Iziedking/nansen-radar.git
+git clone https://github.com/your-username/nansen-radar
 cd nansen-radar
+cp .env.example .env
+# .env already defaults to LLM_PROVIDER=ollama — no edits needed
 ```
 
-No `npm install` needed. Zero external dependencies.
+**4. Investigate a token**
+```bash
+node index.js "Is this token safe to buy? 0x98d0baa52b2d063e780de12f615f963fe8537553 on base"
+```
+
+A browser opens with a full HTML report: risk score, findings, recommendations, radar chart.
 
 ---
 
-## Usage
+## Free LLM Options
+
+| Provider | Cost | Setup |
+|---|---|---|
+| **Ollama** (recommended) | Free, local | `winget install Ollama.Ollama` then `ollama pull llama3.2` |
+| **Google Gemini** | Free tier | `GEMINI_API_KEY=...` in `.env`, set `LLM_PROVIDER=gemini` |
+| **OpenRouter** | Free models available | `OPENROUTER_API_KEY=...` in `.env`, set `LLM_PROVIDER=openrouter` |
+| **Anthropic Claude** | Paid, best quality | `ANTHROPIC_API_KEY=...` in `.env`, set `LLM_PROVIDER=anthropic` |
+
+Set your provider once in `.env` — no flags needed at runtime.
+
+**Model quality tip:** Larger models produce richer analysis. For Ollama:
+- `llama3.2` — fast, lightweight, good for quick checks
+- `qwen2.5:7b` — better reasoning, recommended for serious analysis
+- `gemma3:12b` — best local quality
+
+---
+
+## Investigating Tokens, Wallets, and Markets
 
 ```bash
-node index.js "<your question>"
+# Token analysis (mode auto-detected from address)
+node index.js "Is this safe? 0x98d0baa... on base"
+
+# Force mode explicitly
+node index.js "0x98d0baa... on base" --mode token
+node index.js "Investigate wallet 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 on ethereum" --mode wallet
+node index.js "Where is smart money moving on Solana?" --mode market
+
+# Save raw JSON alongside the HTML report
+node index.js "..." --json
+
+# Skip auto browser open
+node index.js "..." --no-open
+
+# Override LLM for a single run
+node index.js "..." --provider gemini --model gemini-1.5-pro
+node index.js "..." --provider ollama --model qwen2.5:7b
 ```
 
-### Pre-swap intelligence
+---
 
+## Chat Bot — WhatsApp, Telegram & Discord
+
+Talk to nansen-radar directly from your favorite chat app in plain English. The bot understands natural language, maintains conversation context, runs full Nansen investigations, and lets you set price alerts — all without leaving the chat.
+
+```
+You:  "Is 0x98d0... on base safe to buy?"
+Bot:  🔍 Investigating... Running Nansen queries. ~60 seconds. Hang tight.
+Bot:  🔭 KAITO Token — Base Chain
+      Risk: 31/100 — CRITICAL 🟣
+      Smart money has been net selling for 3 days...
+
+      Findings:
+      🔴 Smart Money Distribution — $2.1M net outflow in 72h
+      🔴 Holder Concentration — top wallet holds 18.4% of supply
+      🟡 DEX Liquidity — thin pools, high slippage risk
+      ...
+
+      💡 You can also ask:
+      • "Alert me if this token moves 10%"
+      • "Who is currently buying this token?"
+```
+
+### What the bot understands
+
+| You say | Bot does |
+|---|---|
+| "hi" / "hello" | Sends welcome message with capability overview |
+| "help" | Shows full command examples |
+| "Is 0x98d0... on base safe?" | Token risk analysis |
+| "Analyze wallet 0xd8dA6... on ethereum" | Wallet PnL + trade history |
+| "What is smart money doing on Solana?" | Market intelligence report |
+| "Alert me if 0x98d0... moves 10%" | Creates price watch, notifies you when triggered |
+| "My alerts" | Lists your active price watches |
+| "Remove alert 2" | Cancels a watch by number |
+
+The bot uses LLM-powered intent detection — it understands natural phrasing, crypto slang, contract addresses, chain names, and percentage thresholds from plain language.
+
+### Setup (bot mode)
+
+The bot uses OpenClaw's AI agent as the transport layer. When someone messages your linked WhatsApp/Telegram/Discord, OpenClaw's agent reads the nansen-radar instructions, runs the investigation via `exec`, and replies in-chat — no separate bot server needed.
+
+**Step 1 — Install and configure OpenClaw**
 ```bash
-# Before swapping into a token
-node index.js "I want to buy $50K of JUP on Solana — what are the risks?"
-
-# Check liquidity and routing before a large trade
-node index.js "Is there enough liquidity to swap 500 SOL into BONK without heavy slippage?"
-
-# Check if smart money is exiting before you enter
-node index.js "Is smart money accumulating or distributing PENDLE on ethereum right now?"
+npm install -g openclaw
+openclaw setup
+openclaw configure   # → connect WhatsApp / Telegram / Discord
 ```
 
-### Token safety
-
+**Step 2 — Copy the nansen-radar instructions into OpenClaw's workspace**
 ```bash
-node index.js "Is this token safe? AetrqKMgn6Q5LCvRBShnu5DGM5qz4CSHURzUccgDpump on solana"
-node index.js "Is 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 on ethereum safe to hold?"
+cp openclaw/BOOT.md ~/.openclaw/workspace/BOOT.md
 ```
 
-### Wallet and counterparty analysis
+Open `~/.openclaw/workspace/BOOT.md` and update the path to match your nansen-radar installation.
 
+**Step 3 — Allow node to run without approval prompts**
 ```bash
-node index.js "Who is behind this wallet: 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 on ethereum"
-node index.js "What has this Solana wallet been trading recently?"
+openclaw approvals allowlist add "node"
 ```
 
-### Market intelligence
-
+**Step 4 — Start the gateway**
 ```bash
-node index.js "Where is smart money rotating on Solana this week?"
-node index.js "Is there unusual perp activity on ETH right now?"
-node index.js "What tokens are smart money funds accumulating on Base?"
+openclaw gateway
 ```
 
-### Options
+Message the bot from WhatsApp, Telegram, or Discord — it handles the welcome flow, intent detection, investigations, and price alerts automatically.
+
+**Full platform setup guide (QR scan for WhatsApp, BotFather for Telegram, Discord bot invite):**
+→ [openclaw/SETUP.md](./openclaw/SETUP.md)
+
+---
+
+## Price Alerts
+
+Get notified when a token's price moves beyond a threshold. Works from the CLI or directly from chat.
+
+**From the CLI:**
+```bash
+# Alert on Discord if price moves ±10%
+node index.js --watch-add "0x98d0baa... on base" \
+  --interval 1h \
+  --price-alert 10 \
+  --notify "discord:https://discord.com/api/webhooks/ID/TOKEN"
+
+# Alert back to your WhatsApp number
+node index.js --watch-add "0x98d0baa... on base" \
+  --interval 1h \
+  --price-alert 10 \
+  --notify "whatsapp:+1234567890"
+
+# Multiple channels simultaneously
+node index.js --watch-add "0x98d0baa... on base" \
+  --interval 6h \
+  --price-alert 5 \
+  --notify "discord:https://discord.com/api/webhooks/ID/TOKEN" \
+  --notify "telegram:BOT_TOKEN:CHAT_ID"
+```
+
+**From chat (bot mode):**
+```
+"Alert me if 0x98d0... on base moves 10%"
+→ ✅ Alert set! Checks every 1h. I'll notify you here when triggered.
+
+"My alerts"
+→ 📋 Your Active Alerts (2)
+   1. 0x98d0... on base · Trigger: ±10% · every 1h
+   2. WETH on ethereum · Trigger: ±5% · every 6h
+
+"Remove alert 1"
+→ 🗑️ Alert removed
+```
+
+When a price alert fires, the daemon sends a full risk report to the same chat where the alert was set.
+
+**Manage from CLI:**
+```bash
+node index.js --watch-list
+node index.js --watch-remove <id>
+node index.js --watch-daemon   # start the scheduler
+npm run daemon                 # same
+```
+
+**Interval formats:** `30m` | `6h` | `12h` | `1d` | `2d`
+
+---
+
+## Notification Channels
+
+| Format | Delivery | Content |
+|---|---|---|
+| `discord:WEBHOOK_URL` | Rich embed with color-coded risk | Title, risk score, findings as fields |
+| `slack:WEBHOOK_URL` | Plain text | Full report as text |
+| `telegram:BOT_TOKEN:CHAT_ID` | MarkdownV2 formatted | Emoji-rich structured report |
+| `whatsapp:+NUMBER` | Plain text via OpenClaw | Full report |
+| `openclaw:PLATFORM:TARGET` | Via OpenClaw to any platform | Full report (used internally by bot alerts) |
+
+---
+
+## All CLI Flags
 
 | Flag | Description |
-|------|-------------|
-| `--output <path>` | Custom output path (default: `reports/report-<timestamp>.html`) |
-| `--json` | Also export raw JSON alongside the HTML report |
-| `--no-open` | Do not auto-open the report in the browser |
-
-Reports are saved to the `reports/` directory with a timestamp filename. Each run produces a separate file.
+|---|---|
+| `--mode token\|wallet\|market` | Force investigation type (auto-detected if omitted) |
+| `--provider <name>` | LLM provider: `ollama`, `anthropic`, `gemini`, `openrouter`, `openclaw` |
+| `--model <name>` | Override model for this run |
+| `--output <path>` | Custom output path for HTML report |
+| `--json` | Also save raw JSON alongside HTML |
+| `--no-open` | Don't auto-open browser |
+| `--quiet` | Suppress all progress output (for scripting) |
+| `--stdout-json` | Print result JSON to stdout instead of HTML (for piping) |
+| `--watch-add <query>` | Add query to watch list |
+| `--interval <expr>` | Watch interval: `30m`, `6h`, `1d` |
+| `--price-alert <pct>` | Trigger alert if price moves ±N% since last check |
+| `--notify <spec>` | Notification target (repeatable for multiple channels) |
+| `--watch-list` | List all active watches |
+| `--watch-remove <id>` | Remove a watch by ID |
+| `--watch-daemon` | Start the watch scheduler daemon |
+| `--bot` | Start the conversational bot webhook server |
+| `--bot-port <port>` | Bot port (default: 3456) |
 
 ---
 
-## Report Output
+## Environment Variables (.env)
 
-Each investigation produces a self-contained HTML report containing:
+```bash
+# LLM provider (pick one)
+LLM_PROVIDER=ollama          # ollama | anthropic | gemini | openrouter | openclaw
+LLM_MODEL=llama3.2           # overrides provider default
 
-- **Risk score** — 0 to 100 with visual gauge, color-coded by severity
-- **Executive summary** — plain-language assessment of the overall situation
-- **Intelligence signals** — individual findings with severity levels and supporting data points
-- **Action items** — specific, prioritized recommendations based on the findings
+# Provider keys (only needed for the chosen provider)
+ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=...
+OPENROUTER_API_KEY=...
+
+# Ollama (optional overrides)
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=llama3.2
+
+# OpenClaw gateway (required for WhatsApp/Telegram/Discord bot)
+OPENCLAW_BASE_URL=http://127.0.0.1:18789
+```
+
+Copy `.env.example` to `.env` — all options are included with comments.
 
 ---
 
 ## Architecture
 
+Zero npm dependencies. Pure ESM Node.js ≥18. Uses only `child_process`, `fetch`, and native modules.
+
 ```
-index.js      CLI entry point, .env loading, file output, browser open
-agent.js      Investigation loop: plan → execute → analyze → follow-up
-planner.js    Claude API integration: investigation planning and result analysis
-nansen.js     Nansen CLI execution wrapper with bash shell routing
-config.js     Command schema (22+ endpoints), supported chains, constants
-report.js     Self-contained HTML report generator
+┌─────────────────────────────────────────────────────────────┐
+│                     ENTRY POINTS                            │
+│                                                             │
+│  node index.js "query"     →  CLI investigation            │
+│  node index.js --bot       →  Conversational bot server    │
+│  node index.js --watch-*   →  Scheduled alert management   │
+└────────────┬────────────────────────┬───────────────────────┘
+             │                        │
+             ▼                        ▼
+       agent.js                  bot.js + conversation.js
+  Investigation loop           Intent routing + session store
+  plan → execute → analyze     detectIntent() → LLM classifier
+             │                        │
+             └──────────┬─────────────┘
+                        ▼
+                   planner.js
+            LLM: plan + analyze results
+                        │
+                        ▼
+                   nansen.js
+          Run Nansen CLI commands in parallel
+          (Promise.allSettled, 30s timeout)
+                        │
+                        ▼
+              ┌─────────┴──────────┐
+              ▼                    ▼
+          report.js           notifier.js
+      HTML report           Discord embed
+      (self-contained)      Telegram MD
+                            WhatsApp/OpenClaw
 ```
 
-**Investigation loop (agent.js):**
-
-1. Sends the query to Claude with the full Nansen command schema
-2. Claude returns a structured plan: intent, strategy, and specific commands
-3. Agent runs each command via the Nansen CLI
-4. Results are returned to Claude for analysis
-5. Claude scores risk, surfaces findings, and determines if follow-up data is needed
-6. Loop repeats up to 4 rounds if deeper investigation is warranted
-7. Final HTML report is generated and saved
-
-**Supported chains:** ethereum, solana, base, bnb, arbitrum, polygon, optimism, avalanche, linea, scroll, mantle, ronin, sei, sonic, hyperevm
-
----
-
-## Stack
-
-Pure ESM Node.js. Zero npm dependencies. Requires Node.js 18+.
-
-Uses `child_process` to execute Nansen CLI commands and the native `fetch` API for Claude. No build step.
-
----
-
-## Environment
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Claude API key from console.anthropic.com |
-| Nansen API key | Yes | Set via `nansen login --api-key <key>` |
-
----
-
+| File | Role |
+|---|---|
+| `index.js` | CLI entry, arg parsing, all mode dispatch |
+| `agent.js` | Investigation loop (`plan → execute → analyze → loop`) |
+| `planner.js` | LLM calls: investigation planning + result analysis |
+| `nansen.js` | Nansen CLI wrapper, parallel batch execution |
+| `llm.js` | Multi-provider LLM abstraction (anthropic/ollama/gemini/openrouter/openclaw) |
+| `config.js` | Command registry (22+ Nansen commands), chains, constants |
+| `report.js` | Self-contained HTML report with SVG radar chart |
+| `notifier.js` | Webhook notifications (Discord embed, Telegram MarkdownV2, WhatsApp, OpenClaw) |
+| `watcher.js` | Watch store, cron scheduler, price alert logic |
+| `price.js` | CoinGecko price fetch for price alerts |
+| `bot.js` | Conversational bot HTTP server, intent router |
+| `conversation.js` | SessionStore, LLM intent classifier, platform-aware message builders |

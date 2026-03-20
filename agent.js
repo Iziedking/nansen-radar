@@ -2,13 +2,14 @@ import { planInvestigation, analyzeResults } from './planner.js';
 import { executeBatch, runHealthCheck } from './nansen.js';
 import { MAX_AGENT_STEPS } from './config.js';
 
-export async function investigate(query, providerConfig, mode) {
+export async function investigate(query, providerConfig, mode, quiet = false) {
+  const _log = quiet ? () => {} : (...a) => console.log(...a);
   const log = [];
   let allResults = [];
   let analysis = null;
 
-  console.log(`\n\x1b[1m  NANSEN RADAR\x1b[0m — starting investigation\n`);
-  console.log(`\x1b[90m  Query: ${query}\x1b[0m\n`);
+  _log(`\n\x1b[1m  NANSEN RADAR\x1b[0m — starting investigation\n`);
+  _log(`\x1b[90m  Query: ${query}\x1b[0m\n`);
 
   const health = await runHealthCheck();
   if (!health.ok) {
@@ -19,13 +20,13 @@ export async function investigate(query, providerConfig, mode) {
       `  3. Verify:       nansen --version`
     );
   }
-  console.log(`\x1b[90m  Nansen CLI: ${health.raw}\x1b[0m\n`);
+  _log(`\x1b[90m  Nansen CLI: ${health.raw}\x1b[0m\n`);
 
-  console.log(`\x1b[36m  ► Planning investigation...\x1b[0m`);
+  _log(`\x1b[36m  ► Planning investigation...\x1b[0m`);
   const plan = await planInvestigation(query, providerConfig, mode);
-  console.log(`\x1b[90m  Intent: ${plan.intent}\x1b[0m`);
-  console.log(`\x1b[90m  Strategy: ${plan.reasoning}\x1b[0m`);
-  console.log(`\x1b[90m  Commands: ${plan.plan.length}\x1b[0m\n`);
+  _log(`\x1b[90m  Intent: ${plan.intent}\x1b[0m`);
+  _log(`\x1b[90m  Strategy: ${plan.reasoning}\x1b[0m`);
+  _log(`\x1b[90m  Commands: ${plan.plan.length}\x1b[0m\n`);
 
   log.push({ step: 'plan', intent: plan.intent, commands: plan.plan });
 
@@ -41,14 +42,14 @@ export async function investigate(query, providerConfig, mode) {
     if (!commands.length) break;
 
     const label = step === 0 ? 'Executing initial queries' : `Follow-up round ${step}`;
-    console.log(`\x1b[36m  ► ${label}...\x1b[0m`);
+    _log(`\x1b[36m  ► ${label}...\x1b[0m`);
 
-    const results = await executeBatch(commands);
+    const results = await executeBatch(commands, quiet);
     allResults = allResults.concat(results);
 
     const succeeded = results.filter(r => r.success).length;
     const totalCalls = allResults.length;
-    console.log(`\x1b[90m  ${succeeded}/${results.length} succeeded (${totalCalls} total calls)\x1b[0m\n`);
+    _log(`\x1b[90m  ${succeeded}/${results.length} succeeded (${totalCalls} total calls)\x1b[0m\n`);
 
     log.push({
       step: `execute-${step}`,
@@ -57,10 +58,10 @@ export async function investigate(query, providerConfig, mode) {
       totalCalls,
     });
 
-    console.log(`\x1b[36m  ► Analyzing data...\x1b[0m`);
+    _log(`\x1b[36m  ► Analyzing data...\x1b[0m`);
     analysis = await analyzeResults(query, plan, allResults, providerConfig, mode);
-    console.log(`\x1b[90m  Risk: ${analysis.riskLabel} (${analysis.riskScore}/100)\x1b[0m`);
-    console.log(`\x1b[90m  Findings: ${analysis.findings?.length || 0}\x1b[0m\n`);
+    _log(`\x1b[90m  Risk: ${analysis.riskLabel} (${analysis.riskScore}/100)\x1b[0m`);
+    _log(`\x1b[90m  Findings: ${analysis.findings?.length || 0}\x1b[0m\n`);
 
     log.push({
       step: `analyze-${step}`,
@@ -72,7 +73,7 @@ export async function investigate(query, providerConfig, mode) {
     if (!analysis.needsMoreData) break;
     if (!analysis.followUpCommands?.length) break;
 
-    console.log(`\x1b[33m  Agent determined more data needed...\x1b[0m\n`);
+    _log(`\x1b[33m  Agent determined more data needed...\x1b[0m\n`);
   }
 
   return {
