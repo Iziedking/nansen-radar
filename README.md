@@ -29,7 +29,7 @@ ollama pull llama3.2
 git clone https://github.com/Iziedking/nansen-radar.git
 cd nansen-radar
 cp .env.example .env
-# .env already defaults to LLM_PROVIDER=ollama — no edits needed
+# .env already defaults to LLM_PROVIDER=ollama, you can comment out and use your chosen model
 ```
 
 **4. Investigate a token**
@@ -83,9 +83,9 @@ node index.js "..." --provider ollama --model qwen2.5:7b
 
 ---
 
-## Chat Bot — WhatsApp, Telegram & Discord
+## Chat Bot: WhatsApp, Telegram & Discord
 
-Talk to nansen-radar directly from your favorite chat app in plain English. The bot understands natural language, maintains conversation context, runs full Nansen investigations, and lets you set price alerts — all without leaving the chat.
+Talk to nansen-radar directly from your favorite chat app in plain English. The bot understands natural language, maintains conversation context, runs full Nansen investigations, and lets you set price alerts; all without leaving the chat.
 
 ```
 You:  "Is 0x98d0... on base safe to buy?"
@@ -118,11 +118,11 @@ Bot:  🔭 KAITO Token — Base Chain
 | "My alerts" | Lists your active price watches |
 | "Remove alert 2" | Cancels a watch by number |
 
-The bot uses LLM-powered intent detection — it understands natural phrasing, crypto slang, contract addresses, chain names, and percentage thresholds from plain language.
+The bot uses LLM-powered intent detection. It understands natural phrasing, crypto slang, contract addresses, chain names, and percentage thresholds from plain language.
 
 ### Setup (bot mode)
 
-The bot uses OpenClaw's AI agent as the transport layer. When someone messages your linked WhatsApp/Telegram/Discord, OpenClaw's agent reads the nansen-radar instructions, runs the investigation via `exec`, and replies in-chat — no separate bot server needed.
+The bot uses OpenClaw's AI agent as the transport layer. When someone messages your linked WhatsApp/Telegram/Discord, OpenClaw's agent reads the nansen-radar instructions, runs the investigation via `exec`, and replies in-chat, no separate bot server needed.
 
 **Step 1 — Install and configure OpenClaw**
 ```bash
@@ -148,7 +148,7 @@ openclaw approvals allowlist add "node"
 openclaw gateway
 ```
 
-Message the bot from WhatsApp, Telegram, or Discord — it handles the welcome flow, intent detection, investigations, and price alerts automatically.
+Message the bot from WhatsApp, Telegram, or Discord; it handles the welcome flow, intent detection, investigations, and price alerts automatically.
 
 **Full platform setup guide (QR scan for WhatsApp, BotFather for Telegram, Discord bot invite):**
 → [openclaw/SETUP.md](./openclaw/SETUP.md)
