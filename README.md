@@ -271,7 +271,7 @@ Copy `.env.example` to `.env` — all options are included with comments.
 
 ## Architecture
 
-Zero npm dependencies. Pure ESM Node.js ≥18. Uses only `child_process`, `fetch`, and native modules.
+No npm dependencies. Pure ESM Node.js ≥18. Uses only `child_process`, `fetch`, and native modules.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
