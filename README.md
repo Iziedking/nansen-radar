@@ -26,7 +26,7 @@ ollama pull llama3.2
 
 **3. Clone and configure**
 ```bash
-git clone https://github.com/your-username/nansen-radar
+git clone https://github.com/Iziedking/nansen-radar.git
 cd nansen-radar
 cp .env.example .env
 # .env already defaults to LLM_PROVIDER=ollama — no edits needed
