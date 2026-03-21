@@ -184,10 +184,10 @@ node index.js --watch-add "0x98d0baa... on base" \
 **From chat (bot mode):**
 ```
 "Alert me if 0x98d0... on base moves 10%"
-→ ✅ Alert set! Checks every 1h. I'll notify you here when triggered.
+→ Alert set! Checks every 1h. I'll notify you here when triggered.
 
 "My alerts"
-→ 📋 Your Active Alerts (2)
+→ Your Active Alerts (2)
    1. 0x98d0... on base · Trigger: ±10% · every 1h
    2. WETH on ethereum · Trigger: ±5% · every 6h
 
