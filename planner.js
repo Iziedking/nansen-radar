@@ -51,6 +51,13 @@ function buildWalletCommands(chain, address) {
   ];
 }
 
+function buildBatchWalletCommands(chain, addresses) {
+  const addressList = addresses.join(',');
+  return [
+    `nansen research profiler batch --addresses "${addressList}" --chain ${chain} --include labels,balance`,
+  ];
+}
+
 function buildMarketCommands(chain) {
   const c = chain || 'ethereum';
   return [
@@ -65,27 +72,32 @@ function buildMarketCommands(chain) {
 
 const CLASSIFIER_SYSTEM = `You are a query classifier for a crypto research tool.
 
-Your ONLY job: read the user's query and extract 4 fields. Nothing else.
+Your ONLY job: read the user's query and extract 5 fields. Nothing else.
 
 CRITICAL: Respond with ONLY a JSON object. Start with { end with }. No markdown, no explanation.
 
 Classification rules:
 - queryType "TOKEN": user mentions a token name, contract address for a token, "safe to buy", "rug", "invest in"
-- queryType "WALLET": user mentions "wallet", "portfolio", "holdings of address", "track this address"
+- queryType "WALLET": user mentions "wallet", "portfolio", "holdings of address", "track this address", OR gives a list of addresses to classify/check
 - queryType "MARKET": no specific token/address — broad questions about trends, smart money, what to buy
 
 Chain detection — use EXACT names only:
 ethereum, solana, base, bnb, arbitrum, polygon, optimism, avalanche, linea, scroll, mantle, ronin, sei, sonic, hyperevm
 Default to "ethereum" if chain is not mentioned.
 
-Address: extract any 0x... or base58 address from the query. null if none.
+Address extraction rules:
+- Extract ALL 0x... or base58 addresses found in the query into the "addresses" array.
+- If exactly one address: set "address" to it, set "addresses" to [].
+- If multiple addresses: set "address" to null, set "addresses" to the full array.
+- If no address: set "address" to null, set "addresses" to [].
 
 Response format (fill in the values, keep the keys exactly):
 {
   "intent": "one short sentence what user wants to know",
-  "queryType": "TOKEN",
-  "chain": "base",
-  "address": "0x98d0baa52b2d063e780de12f615f963fe8537553",
+  "queryType": "WALLET",
+  "chain": "ethereum",
+  "address": null,
+  "addresses": ["0xaddr1", "0xaddr2", "0xaddr3"],
   "reasoning": "one sentence why this classification"
 }`;
 
@@ -100,10 +112,15 @@ export async function planInvestigation(query, providerConfig, mode) {
   // Step 2: Code builds the full command set from templates — reliable regardless of model size
   const queryType = (mode && MODE_TO_TYPE[mode]) || parsed.queryType || 'TOKEN';
   const chain = (parsed.chain || 'ethereum').toLowerCase().trim();
-  const address = parsed.address || null;
+  const addresses = Array.isArray(parsed.addresses) ? parsed.addresses.filter(Boolean) : [];
+  // Single address: prefer parsed.address, fall back to sole entry in addresses array
+  const address = parsed.address || (addresses.length === 1 ? addresses[0] : null);
 
   let plan;
-  if (queryType === 'WALLET' && address) {
+  if (queryType === 'WALLET' && addresses.length > 1) {
+    // Batch mode — multiple addresses: one CLI call profiles them all at once
+    plan = buildBatchWalletCommands(chain, addresses);
+  } else if (queryType === 'WALLET' && address) {
     plan = buildWalletCommands(chain, address);
   } else if (queryType === 'MARKET' || !address) {
     plan = buildMarketCommands(chain);
@@ -117,6 +134,7 @@ export async function planInvestigation(query, providerConfig, mode) {
     queryType,
     chain,
     address,
+    addresses,
     plan,
     reasoning: parsed.reasoning || '',
   };

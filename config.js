@@ -133,6 +133,13 @@ export const NANSEN_COMMANDS = [
     returns: 'address, labels[]',
   },
   {
+    command: 'research profiler batch',
+    description: 'Batch profile multiple wallet addresses at once — labels and balances for each. Use when given a list of addresses to classify as smart money, fund, etc. Much faster than profiling one-by-one.',
+    requires: ['--addresses', '--chain'],
+    optional: ['--include'],
+    returns: 'total, completed, results[]: {address, labels[]: {label, category (smart_money|fund|social|behavioral|others), fullname}, balance: {data[]: {token_symbol, token_amount, price_usd, value_usd}}, error}',
+  },
+  {
     command: 'research profiler historical-balances',
     description: 'Historical token balances over time for a wallet.',
     requires: ['--chain', '--address'],
